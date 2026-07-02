@@ -1,0 +1,122 @@
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import 'leaflet/dist/leaflet.css';
+
+@import "tailwindcss";
+
+:root {
+  --prussian-blue: #050A30;
+  --platinum: #F0F4F7;
+  --twt-blue: #1B75BC;
+  --flag-red: #C62828;
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 80px;
+}
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Poppins', system-ui, sans-serif;
+  --color-prussian: #050A30;
+  --color-platinum: #F0F4F7;
+  --color-twt-blue: #1B75BC;
+  --color-flag-red: #C62828;
+  --color-priority-low: #D1FAE5;
+  --color-priority-low-text: #065F46;
+  --color-priority-medium: #FEF3C7;
+  --color-priority-medium-text: #92400E;
+  --color-priority-high: #FEE2E2;
+  --color-priority-high-text: #991B1B;
+  --color-priority-veryhigh: #C62828;
+  --color-priority-veryhigh-text: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--platinum);
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', system-ui, sans-serif;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Leaflet map fix for icons */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+}
+
+/* Priority badge base */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Smooth transitions */
+.transition-sidebar {
+  transition: width 0.3s ease, opacity 0.2s ease;
+}
+
+/* Custom select arrow hide */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 0.8s linear infinite;
+}
+.spinner-dark {
+  border: 4px solid rgba(5, 10, 48, 0.15);
+  border-top-color: var(--prussian-blue);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 0.8s linear infinite;
+}

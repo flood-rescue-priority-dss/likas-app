@@ -1,0 +1,255 @@
+import { useEffect, useState, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
+import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Calendar } from 'lucide-react';
+import AppShell from '../components/layout/AppShell';
+import PageHeader from '../components/ui/PageHeader';
+import MetricCard from '../components/ui/MetricCard';
+import DataTable from '../components/ui/DataTable';
+import PriorityBadge from '../components/ui/PriorityBadge';
+import SearchInput from '../components/ui/SearchInput';
+import LogIncidentModal from '../components/modals/LogIncidentModal';
+import { floodService, geoService } from '../services';
+import type { FloodIncident, RecurrenceHotspot, Barangay } from '../types';
+
+export default function FloodRecordsDetailPage() {
+  const { barangayId } = useParams<{ barangayId: string }>();
+
+  const [barangay, setBarangay] = useState<Barangay | null>(null);
+  const [incidents, setIncidents] = useState<FloodIncident[]>([]);
+  const [hotspots, setHotspots] = useState<RecurrenceHotspot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [tableSearch, setTableSearch] = useState('');
+  const [logOpen, setLogOpen] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  useEffect(() => {
+    if (!barangayId) return;
+    setLoading(true);
+    Promise.all([
+      geoService.getBarangayById(barangayId).catch(() => null),
+      floodService.getFloodRecordsByBarangay(barangayId).catch(() => []),
+      floodService.getRecurrenceHotspots(barangayId).catch(() => []),
+    ]).then(([brgy, inc, hs]) => {
+      setBarangay(brgy ?? null);
+      setIncidents(inc || []);
+      setHotspots(hs || []);
+      setLoading(false);
+    });
+  }, [barangayId]);
+
+  const filteredIncidents = useMemo(() => {
+    return incidents.filter(i => {
+      const matchSearch = !tableSearch ||
+        i.street.toLowerCase().includes(tableSearch.toLowerCase()) ||
+        i.cause.toLowerCase().includes(tableSearch.toLowerCase());
+      const matchStart = !startDate || i.date >= startDate;
+      const matchEnd = !endDate || i.date <= endDate;
+      return matchSearch && matchStart && matchEnd;
+    });
+  }, [incidents, tableSearch, startDate, endDate]);
+
+  const avgDepth = incidents.length
+    ? Math.round(incidents.reduce((s, i) => s + i.depthInches, 0) / incidents.length)
+    : 0;
+
+  const avgPriorityScore = () => {
+    if (!incidents.length) return 'N/A';
+    const scores = { Low: 1, Medium: 2, High: 3, 'Very High': 4 };
+    const avg = incidents.reduce((s, i) => s + (scores[i.priority] || 1), 0) / incidents.length;
+    if (avg < 1.5) return 'Low';
+    if (avg < 2.5) return 'Medium';
+    if (avg < 3.5) return 'High';
+    return 'Very High';
+  };
+
+  const handleIncidentSaved = (newIncident: FloodIncident) => {
+    setIncidents(prev => [newIncident, ...prev]);
+    floodService.getRecurrenceHotspots(barangayId!).then(setHotspots);
+  };
+
+  const columns = [
+    { key: 'date', header: 'Date (YY/MM/DD)', render: (r: FloodIncident) => r.date },
+    { key: 'time', header: 'Time', render: (r: FloodIncident) => r.time },
+    { key: 'street', header: 'Street', render: (r: FloodIncident) => (
+      <span className="font-semibold text-gray-800">{r.street}</span>
+    )},
+    { key: 'depth', header: 'Depth (in)', render: (r: FloodIncident) => r.depthInches },
+    { key: 'status', header: 'Status', render: (r: FloodIncident) => (
+      <span className="px-2 py-0.5 rounded text-xs font-inter font-medium bg-gray-100 text-gray-600">{r.status}</span>
+    )},
+    { key: 'cause', header: 'Cause', render: (r: FloodIncident) => (
+      <span className="text-xs font-inter text-gray-600">{r.cause}</span>
+    )},
+    { key: 'priority', header: 'Priority', render: (r: FloodIncident) => (
+      <PriorityBadge priority={r.priority} size="sm" />
+    )},
+  ];
+
+  const districtName = 'District 5';
+  const cityName = 'Port Area';
+  const brgyName = barangay?.name ?? barangayId ?? '';
+
+  return (
+    <AppShell defaultExpanded={false}>
+      <div className="p-10">
+        <PageHeader
+          title="FLOOD RECORDS"
+          titleUppercase
+          breadcrumbs={[
+            { label: districtName, muted: true },
+            { label: cityName, muted: true },
+            { label: brgyName },
+          ]}
+          search={{ value: search, onChange: setSearch }}
+          action={
+            <button
+              id="log-incident-btn"
+              onClick={() => setLogOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#C62828] hover:bg-red-800 text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm"
+            >
+              <Plus size={16} />
+              Log Incident
+            </button>
+          }
+        />
+
+        {/* Metric cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <MetricCard label="Total Flood Records" value={loading ? '—' : incidents.length} />
+          <MetricCard label="Avg. Depth" value={loading ? '—' : `${avgDepth} in`}
+            icon={<Droplets size={14} className="text-sky-500" />} iconBg="bg-sky-50" />
+          <MetricCard label="Total Incidents" value={loading ? '—' : filteredIncidents.length}
+            icon={<CloudRain size={14} className="text-blue-500" />} iconBg="bg-blue-50" />
+          <MetricCard label="Avg. Priority" value={loading ? '—' : avgPriorityScore()}
+            icon={<AlertTriangle size={14} className="text-amber-500" />} iconBg="bg-amber-50" />
+        </div>
+
+        {/* Main content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Incident Log */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="px-6 pt-6 pb-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="font-heading font-bold text-gray-900 text-base">Incident Log</h2>
+                  <p className="text-xs font-inter text-gray-400 mt-0.5">
+                    All recorded flood events across {brgyName}
+                  </p>
+                </div>
+                <SearchInput
+                  value={tableSearch}
+                  onChange={setTableSearch}
+                  placeholder="Search Streets…"
+                  className="w-48"
+                />
+              </div>
+              {/* Date filter */}
+              <div className="flex items-center gap-3 mt-4 flex-wrap">
+                <span className="text-xs font-inter text-gray-500">Time Interval:</span>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="pl-3 pr-8 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                    />
+                    <Calendar size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                  <span className="text-xs text-gray-400">to</span>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      className="pl-3 pr-8 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                    />
+                    <Calendar size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                  {(startDate || endDate) && (
+                    <button onClick={() => { setStartDate(''); setEndDate(''); }}
+                      className="text-xs font-inter text-[#1B75BC] hover:underline">Clear</button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DataTable
+              columns={columns as any}
+              data={filteredIncidents}
+              keyExtractor={r => r.id}
+              loading={loading}
+              pageSize={8}
+            />
+          </div>
+
+          {/* Recurrence Hotspots */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <BarChart2 size={16} className="text-gray-400" />
+              <h2 className="font-heading font-bold text-gray-900 text-base">Recurrence Hotspots</h2>
+            </div>
+            <p className="text-xs font-inter text-gray-400 mb-5">Most affected streets</p>
+
+            {loading ? (
+              <div className="flex items-center justify-center h-40"><div className="spinner-dark" /></div>
+            ) : hotspots.length === 0 ? (
+              <p className="text-sm font-inter text-gray-400 text-center py-8">No hotspots recorded.</p>
+            ) : (
+              <div className="space-y-5">
+                {hotspots.map((h, i) => (
+                  <div key={i}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-inter font-semibold text-gray-800">{h.street}</span>
+                      <span className="text-xs font-inter text-gray-400">
+                        {h.eventCount} {h.eventCount === 1 ? 'event' : 'events'}
+                      </span>
+                    </div>
+                    {/* Segmented bar */}
+                    <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
+                      {h.segmentLow > 0 && (
+                        <div className="bg-emerald-400 rounded-full" style={{ flex: h.segmentLow }} />
+                      )}
+                      {h.segmentMedium > 0 && (
+                        <div className="bg-amber-400 rounded-full" style={{ flex: h.segmentMedium }} />
+                      )}
+                      {h.segmentHigh > 0 && (
+                        <div className="bg-red-400 rounded-full" style={{ flex: h.segmentHigh }} />
+                      )}
+                      {h.segmentVeryHigh > 0 && (
+                        <div className="bg-[#C62828] rounded-full" style={{ flex: h.segmentVeryHigh }} />
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Legend */}
+                <div className="pt-3 border-t border-gray-50 flex flex-wrap gap-3">
+                  {[
+                    { color: 'bg-emerald-400', label: 'Low' },
+                    { color: 'bg-amber-400', label: 'Medium' },
+                    { color: 'bg-red-400', label: 'High' },
+                    { color: 'bg-[#C62828]', label: 'Very High' },
+                  ].map(l => (
+                    <div key={l.label} className="flex items-center gap-1.5">
+                      <div className={`w-2 h-2 rounded-full ${l.color}`} />
+                      <span className="text-xs font-inter text-gray-500">{l.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <LogIncidentModal
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        barangayId={barangayId!}
+        onSaved={handleIncidentSaved}
+      />
+    </AppShell>
+  );
+}
