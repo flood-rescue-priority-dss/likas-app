@@ -6,7 +6,7 @@ The system analyzes real-time and historical flood data, combining it with demog
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 The system is built using a modern **Microservices Architecture**, meaning it is split into three separate components that talk to each other. This separation ensures the system is fast, secure, and scalable.
 
@@ -34,7 +34,7 @@ This folder contains a **Python FastAPI** microservice. Python is the industry s
 
 ---
 
-## 🚀 How to Run the System
+## How to Run the System
 
 Since all three services need to run at the same time for the app to work, we created a single shortcut file to handle everything for you.
 
@@ -47,7 +47,7 @@ Since all three services need to run at the same time for the app to work, we cr
 
 ---
 
-## 🔐 System Access (Accounts)
+## System Access (Accounts)
 
 The system features Strict Role-Based Access Control (RBAC). What you see depends entirely on how you log in.
 
