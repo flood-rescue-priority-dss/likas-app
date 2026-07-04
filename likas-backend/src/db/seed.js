@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { pool } = require('./index');
+const bcrypt = require('bcryptjs');
 const { 
   DISTRICTS, 
   CITIES, 
@@ -20,6 +21,7 @@ async function seed() {
     
     // Clear existing data
     console.log('Clearing existing data...');
+    await client.query('DELETE FROM street_registry');
     await client.query('DELETE FROM flood_incidents');
     await client.query('DELETE FROM street_vulnerabilities');
     await client.query('DELETE FROM users');
@@ -51,14 +53,16 @@ async function seed() {
     // Seed Users
     console.log(`Seeding ${ACCOUNTS.length} users...`);
     for (const u of ACCOUNTS) {
-      const cred = CREDENTIALS[u.id];
-      if (!cred) continue;
+      const cred = CREDENTIALS[u.registeredEmail];
+      if (!cred || !cred.password) continue;
+      
+      const passwordHash = bcrypt.hashSync(cred.password, 10);
       
       await client.query(
         `INSERT INTO users 
          (id, office_name, city_municipality, zone, region, office_contact, office_reference_no, registered_email, role, password_hash) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [u.id, u.officeName, u.cityMunicipality, u.zone || null, u.region, u.officeContact, u.officeReferenceNo, u.registeredEmail, u.role, cred.passwordHash]
+        [u.id, u.officeName, u.cityMunicipality, u.zone || null, u.region, u.officeContact, u.officeReferenceNo, u.registeredEmail, u.role, passwordHash]
       );
     }
     
