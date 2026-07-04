@@ -130,9 +130,9 @@ export interface DashboardSummary {
     count: number;
     color: string;
   }[];
-  topBarangays: {
-    name: string;
-    waterDepth: number;
+  topStreets: {
+    barangay: string;
+    street: string;
     level: Priority;
   }[];
 }

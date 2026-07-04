@@ -11,7 +11,7 @@ router.get('/summary', verifyToken, async (req, res) => {
 
     let totalPop = 0, senior = 0, pwd = 0, children = 0, pregnant = 0;
     let highPriorityAreas = 0, totalFloodRecords = 0, totalStreets = 0;
-    let topBarangays = [];
+    let topStreets = [];
 
     if (isAdmin) {
       // Admin: Global stats
@@ -30,19 +30,19 @@ router.get('/summary', verifyToken, async (req, res) => {
       const resHighPrio = await pool.query("SELECT COUNT(*) FROM street_registry WHERE priority IN ('High', 'Very High')");
       highPriorityAreas = parseInt(resHighPrio.rows[0].count, 10);
 
-      // Top Barangays by Flood Depth
-      const resTopBrgy = await pool.query(`
-        SELECT b.name, MAX(f.depth_inches) as depth, MAX(f.priority) as level
-        FROM flood_incidents f
-        JOIN barangays b ON f.barangay_id = b.id
-        GROUP BY b.name
-        ORDER BY depth DESC
+      // Top Streets by Priority Score
+      const resTopStreets = await pool.query(`
+        SELECT b.name as barangay, s.street_name as street, s.priority as level
+        FROM street_registry s
+        JOIN barangays b ON s.barangay_id = b.id
+        WHERE s.priority = 'High' OR s.priority = 'Very High'
+        ORDER BY s.priority_score DESC
         LIMIT 5
       `);
-      topBarangays = resTopBrgy.rows.map(r => ({
-        name: r.name,
-        waterDepth: r.depth,
-        level: r.level
+      topStreets = resTopStreets.rows.map(r => ({
+        barangay: r.barangay,
+        street: r.street,
+        level: 'High' // Map 'Very High' to 'High' for display as requested
       }));
 
     } else {
@@ -71,19 +71,18 @@ router.get('/summary', verifyToken, async (req, res) => {
       const resHighPrio = await pool.query("SELECT COUNT(*) FROM street_registry WHERE priority IN ('High', 'Very High') AND barangay_id = $1", [brgyId]);
       highPriorityAreas = parseInt(resHighPrio.rows[0].count, 10);
 
-      const resTopBrgy = await pool.query(`
-        SELECT b.name, MAX(f.depth_inches) as depth, MAX(f.priority) as level
-        FROM flood_incidents f
-        JOIN barangays b ON f.barangay_id = b.id
-        WHERE f.barangay_id = $1
-        GROUP BY b.name
-        ORDER BY depth DESC
+      const resTopStreets = await pool.query(`
+        SELECT b.name as barangay, s.street_name as street, s.priority as level
+        FROM street_registry s
+        JOIN barangays b ON s.barangay_id = b.id
+        WHERE (s.priority = 'High' OR s.priority = 'Very High') AND s.barangay_id = $1
+        ORDER BY s.priority_score DESC
         LIMIT 5
       `, [brgyId]);
-      topBarangays = resTopBrgy.rows.map(r => ({
-        name: r.name,
-        waterDepth: r.depth,
-        level: r.level
+      topStreets = resTopStreets.rows.map(r => ({
+        barangay: r.barangay,
+        street: r.street,
+        level: 'High' // Map 'Very High' to 'High' for display as requested
       }));
     }
 
@@ -91,10 +90,10 @@ router.get('/summary', verifyToken, async (req, res) => {
     const populationDistribution = [
       { label: 'General Residents', count: general, color: '#1B75BC' },
       { label: 'Children', count: children, color: '#38BDF8' },
-      { label: 'Senior Citizens', count: senior, color: '#10B981' },
       { label: 'PWDs', count: pwd, color: '#F59E0B' },
-      { label: 'Pregnant Women', count: pregnant, color: '#EC4899' }
-    ];
+      { label: 'Pregnant Women', count: pregnant, color: '#EC4899' },
+      { label: 'Senior Citizens', count: senior, color: '#10B981' }
+    ].sort((a, b) => b.count - a.count); // Sort descending
 
     res.json({
       totalPopulation: totalPop,
@@ -102,7 +101,7 @@ router.get('/summary', verifyToken, async (req, res) => {
       totalFloodRecords,
       highPriorityAreas,
       populationDistribution,
-      topBarangays
+      topStreets
     });
   } catch (err) {
     console.error(err);
