@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const { ACCOUNTS } = require('../data/baseline');
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -18,8 +17,4 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-const extractUser = (req) => {
-  return ACCOUNTS.find(a => a.id === req.user.id);
-};
-
-module.exports = { verifyToken, extractUser };
+module.exports = { verifyToken };

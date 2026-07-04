@@ -7,8 +7,8 @@
     "dev": "node --watch src/index.js",
     "build": "tsc",
     "start": "node src/index.js",
-    "db:schema": "node -e \"require('dotenv').config(); const {Pool}=require('pg'); const fs=require('fs'); const p=new Pool(); p.query(fs.readFileSync('src/db/schema.sql','utf8')).then(()=>{console.log('Schema applied');p.end()}).catch(e=>{console.error(e);p.end()})\"",
-    "db:seed": "ts-node src/db/seed.ts"
+    "db:schema": "node -e \"require('dotenv').config(); const {Pool}=require('pg'); const fs=require('fs'); const p=new Pool({connectionString: process.env.DATABASE_URL}); p.query(fs.readFileSync('src/db/schema.sql','utf8').replace(/--.*/g, '')).then(()=>{console.log('Schema applied');p.end()}).catch(e=>{console.error(e);p.end()})\"",
+    "db:seed": "node src/db/seed.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
