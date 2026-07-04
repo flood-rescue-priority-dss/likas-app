@@ -58,6 +58,6 @@ The Admin account has full access to view the data of every single barangay acro
 
 ### 2. Barangay Official (Isolated View)
 Barangay accounts are highly restricted. When a barangay logs in, the backend securely filters the database and *only* sends data belonging to their specific jurisdiction. They cannot see other barangays.
-* **Example Brgy 651 Email:** `manila.brgy.651@gov.ph`
-* **Example Brgy 651 Password:** `Brgy651!`
+* **Example Brgy 651 Email:** `manila.brgy-651@gov.ph`
+* **Example Brgy 651 Password:** `Password123!`
 * *(Note: We generated accounts for every single barangay in your dataset. The format is `manila.<brgy-id>@gov.ph`, and the default password is `Password123!`)*
