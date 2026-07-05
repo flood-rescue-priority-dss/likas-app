@@ -72,7 +72,7 @@ export default function FloodRecordsDetailPage() {
   const columns = [
     { key: 'date', header: 'Date (YY/MM/DD)', render: (r: FloodIncident) => r.date },
     { key: 'time', header: 'Time', render: (r: FloodIncident) => r.time },
-    { key: 'street', header: 'Street', render: (r: FloodIncident) => (
+    { key: 'street', header: 'Location', render: (r: FloodIncident) => (
       <span className="font-semibold text-gray-800">{r.street}</span>
     )},
     { key: 'depth', header: 'Depth (in)', render: (r: FloodIncident) => r.depthInches },
@@ -154,9 +154,8 @@ export default function FloodRecordsDetailPage() {
                       type="date"
                       value={startDate}
                       onChange={e => setStartDate(e.target.value)}
-                      className="pl-3 pr-8 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                      className="pl-3 pr-3 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                     />
-                    <Calendar size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
                   <span className="text-xs text-gray-400">to</span>
                   <div className="relative">
@@ -164,9 +163,8 @@ export default function FloodRecordsDetailPage() {
                       type="date"
                       value={endDate}
                       onChange={e => setEndDate(e.target.value)}
-                      className="pl-3 pr-8 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                      className="pl-3 pr-3 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                     />
-                    <Calendar size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
                   {(startDate || endDate) && (
                     <button onClick={() => { setStartDate(''); setEndDate(''); }}

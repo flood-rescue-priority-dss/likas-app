@@ -29,7 +29,7 @@ export default function StreetRegistryDetailPage() {
     ]).then(([brgy, strs]) => {
       setBarangay(brgy ?? null);
       setStreets(strs);
-      setSelectedStreet(strs[0] ?? null);
+      setSelectedStreet(null); // Don't pre-select, wait for user click
       setLoading(false);
     });
   }, [barangayId]);
@@ -48,21 +48,27 @@ export default function StreetRegistryDetailPage() {
 
   const highCount = streets.filter(s => s.priority === 'High').length;
 
+  const getFloodLevel = (score: number) => {
+    if (score < 5) return 'Low';
+    if (score < 8) return 'Medium';
+    return 'High';
+  };
+
   const columns: Column<StreetRegistryEntry>[] = [
-    { key: 'streetName', header: 'Street Name', render: r => (
+    { key: 'streetName', header: 'Location', render: r => (
       <span className="font-semibold text-gray-800">{r.streetName}</span>
     )},
-    { key: 'priorityScore', header: 'Flood Level', render: r => (
-      <span className="font-heading font-bold text-gray-700">{r.priorityScore}</span>
-    )},
+    { key: 'floodLevel', header: 'Flood Level', render: r => {
+      const level = getFloodLevel(r.priorityScore);
+      return <PriorityBadge priority={level as any} size="sm" />;
+    }},
+    { key: 'vulnerabilityScore', header: 'Vulnerability', render: r => {
+      const vulnLevel = getFloodLevel(r.vulnerabilityScore);
+      return <PriorityBadge priority={vulnLevel as any} size="sm" />;
+    }},
     { key: 'priority', header: 'Priority', render: r => <PriorityBadge priority={r.priority} size="sm" /> },
     { key: 'lastUpdated', header: 'Last Updated', render: r => (
-      <span className="text-gray-500 text-xs">{r.lastUpdated}</span>
-    )},
-    { key: 'action', header: 'Action', render: (_r: StreetRegistryEntry) => (
-      <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#1B75BC] transition-colors">
-        <Pencil size={14} />
-      </button>
+      <span className="text-gray-500 text-xs">{r.lastUpdated ? r.lastUpdated.split('T')[0] : 'N/A'}</span>
     )},
   ];
 
@@ -121,7 +127,7 @@ export default function StreetRegistryDetailPage() {
             <h2 className="font-heading font-semibold text-gray-800 text-sm">
               {selectedStreet ? selectedStreet.streetName : brgyName} — Street Map
             </h2>
-            <span className="text-xs font-inter text-gray-400">Click a street row to update pin</span>
+            <span className="text-xs font-inter text-gray-400">Click a location row to update pin</span>
           </div>
           <MapPreview
             center={mapCenter}
@@ -135,9 +141,9 @@ export default function StreetRegistryDetailPage() {
         {/* Streets table */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-6 pt-6 pb-4">
-            <h2 className="font-heading font-bold text-gray-900 text-base">All Streets</h2>
+            <h2 className="font-heading font-bold text-gray-900 text-base">All Locations</h2>
             <p className="text-xs font-inter text-gray-400 mt-0.5">
-              {streets.length} streets in {brgyName}
+              {streets.length} available locations in {brgyName}
             </p>
           </div>
           <DataTable

@@ -32,36 +32,9 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   const [error, setError] = useState('');
   const [priority, setPriority] = useState<Priority>('Low');
 
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [hour, setHour] = useState(12);
-  const [minute, setMinute] = useState(0);
-  const [period, setPeriod] = useState<'AM' | 'PM'>('PM');
-
-  const timeRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (timeRef.current && !timeRef.current.contains(e.target as Node)) {
-        setShowTimePicker(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const handleTimeSelect = (h: number, m: number, p: 'AM' | 'PM') => {
-    setHour(h); setMinute(m); setPeriod(p);
-    const h24 = p === 'PM' && h !== 12 ? h + 12 : p === 'AM' && h === 12 ? 0 : h;
-    setTime(`${String(h24).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-  };
-
-  const displayTime = time
-    ? `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`
-    : '';
-
   const handleSave = async () => {
-    if (!date || !time || !street || !cause) {
-      setError('Please fill in all required fields.');
+    if (!date || !time || !street || depth <= 0 || !cause) {
+      setError('Please fill in all required fields (depth must be greater than 0).');
       return;
     }
     setLoading(true); setError('');
@@ -88,13 +61,10 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
   const resetForm = () => {
     setDate(''); setTime(''); setStreet(''); setDepth(0); setCause('');
-    setError(''); setHour(12); setMinute(0); setPeriod('PM'); setPriority('Low');
+    setError(''); setPriority('Low');
   };
 
   const handleClose = () => { resetForm(); onClose(); };
-
-  const hours = [8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7];
-  const minutes = Array.from({ length: 12 }, (_, i) => i * 5);
 
   return (
     <Modal
@@ -107,86 +77,33 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
       <div className="space-y-4">
         {/* Date */}
         <div>
-          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Date</label>
+          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Date <span className="text-red-500">*</span></label>
           <div className="relative">
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
+              className="w-full px-4 py-3 pr-4 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
             />
-            <Calendar size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
         </div>
 
         {/* Time */}
         <div>
-          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Time</label>
-          <div className="relative" ref={timeRef}>
-            <button
-              type="button"
-              onClick={() => setShowTimePicker(v => !v)}
-              className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl text-sm font-inter bg-white transition-all ${
-                showTimePicker ? 'border-[#1B75BC] ring-2 ring-[#1B75BC]/20' : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <span className={displayTime ? 'text-gray-800' : 'text-gray-400'}>
-                {displayTime || 'hh:mm --'}
-              </span>
-              <Clock size={15} className="text-gray-400" />
-            </button>
-
-            {showTimePicker && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden">
-                <div className="flex divide-x divide-gray-100">
-                  {/* Hours */}
-                  <div className="flex-1 max-h-48 overflow-y-auto">
-                    <p className="text-xs font-inter text-gray-400 px-3 py-2 uppercase tracking-wide sticky top-0 bg-white">Hour</p>
-                    {hours.map(h => (
-                      <button
-                        key={h}
-                        onClick={() => handleTimeSelect(h, minute, period)}
-                        className={`w-full text-center py-2 text-sm font-inter hover:bg-[#F0F4F7] ${h === hour ? 'bg-[#F0F4F7] font-semibold text-[#050A30]' : 'text-gray-700'}`}
-                      >
-                        {String(h).padStart(2, '0')}
-                      </button>
-                    ))}
-                  </div>
-                  {/* Minutes */}
-                  <div className="flex-1 max-h-48 overflow-y-auto">
-                    <p className="text-xs font-inter text-gray-400 px-3 py-2 uppercase tracking-wide sticky top-0 bg-white">Min</p>
-                    {minutes.map(m => (
-                      <button
-                        key={m}
-                        onClick={() => handleTimeSelect(hour, m, period)}
-                        className={`w-full text-center py-2 text-sm font-inter hover:bg-[#F0F4F7] ${m === minute ? 'bg-[#F0F4F7] font-semibold text-[#050A30]' : 'text-gray-700'}`}
-                      >
-                        {String(m).padStart(2, '0')}
-                      </button>
-                    ))}
-                  </div>
-                  {/* AM/PM */}
-                  <div className="w-20">
-                    <p className="text-xs font-inter text-gray-400 px-3 py-2 uppercase tracking-wide">Period</p>
-                    {(['AM', 'PM'] as const).map(p => (
-                      <button
-                        key={p}
-                        onClick={() => handleTimeSelect(hour, minute, p)}
-                        className={`w-full text-center py-3 text-sm font-inter hover:bg-[#F0F4F7] ${p === period ? 'bg-[#F0F4F7] font-semibold text-[#050A30]' : 'text-gray-700'}`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Time <span className="text-red-500">*</span></label>
+          <div className="relative">
+            <input
+              type="time"
+              value={time}
+              onChange={e => setTime(e.target.value)}
+              className="w-full px-4 py-3 pr-4 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
+            />
           </div>
         </div>
 
         {/* Street */}
         <div>
-          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Street</label>
+          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Street <span className="text-red-500">*</span></label>
           <DropdownSelect
             options={STREETS.map(s => ({ value: s, label: s }))}
             value={street}
@@ -197,7 +114,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
         {/* Flood Depth */}
         <div>
-          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Flood Depth</label>
+          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Flood Depth <span className="text-red-500">*</span></label>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -221,7 +138,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
         {/* Cause */}
         <div>
-          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Cause</label>
+          <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Cause <span className="text-red-500">*</span></label>
           <DropdownSelect
             options={CAUSES.map(c => ({ value: c, label: c }))}
             value={cause}
