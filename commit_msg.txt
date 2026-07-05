@@ -1,6 +1,0 @@
-LIK-12, LIK-13, & LIK-26
-
-- Refactored Priority List page to a responsive full-width grid, removing the right-side map.
-- Embedded static, lazy-loaded MapPreview components inside each PriorityCard using IntersectionObserver.
-- Added lat/lng to the Priority API response and handled Leaflet size invalidation on render.
-- Configured automatic route redirection for barangay accounts to bypass the District/City Selection page.
