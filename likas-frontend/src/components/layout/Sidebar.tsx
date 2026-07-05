@@ -50,7 +50,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
 
       sliderRef.current.style.top = `${elRect.top - navTop + navRef.current.scrollTop}px`;
       sliderRef.current.style.height = `${elRect.height}px`;
-      sliderRef.current.style.left = isChild && expanded ? '32px' : '8px';
+      sliderRef.current.style.left = isChild && expanded ? '30px' : '12px';
       sliderRef.current.style.right = '0px';
       sliderRef.current.style.borderRadius = '9999px 0 0 9999px';
       sliderRef.current.style.opacity = '1';
@@ -77,11 +77,11 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
     >
       {/* Logo / Toggle */}
       <div
-        className="flex items-center gap-3 px-4 py-6 cursor-pointer select-none flex-shrink-0"
+        className="flex items-center gap-3 px-4 py-6 cursor-pointer select-none flex-shrink-0 "
         onClick={onToggle}
       >
-        <div className="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
-          <span className="text-[#050A30] font-bold text-sm font-heading">L</span>
+        <div className="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-[0_0_6px_1px_rgba(255,255,255,0.3)]">
+          <span className="text-[#050A30] font-bold text-sm font-heading ">L</span>
         </div>
         {expanded && (
           <span className="text-white font-heading font-bold text-2xl tracking-wide">LIKAS</span>
@@ -166,7 +166,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
                 const childActive = location.pathname === child.to;
                 const childTextColor = childActive
                   ? 'text-[#C62828]'
-                  : 'text-gray-400 group-hover:text-white';
+                  : 'text-gray-300 group-hover:text-white';
 
                 return (
                   <NavLink
@@ -175,7 +175,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
                     data-nav-type="child"
                     data-active={childActive ? 'true' : 'false'}
                     className={[
-                      'flex items-center gap-3 h-9 mt-0.5 rounded-l-full group relative z-10 w-full',
+                      'flex items-center gap-3 h-9 mt-1 rounded-l-full group relative z-10 w-full',
                       'transition-[padding,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
                       expanded ? 'pl-3 pr-3 ml-5' : 'pl-3 pr-3 ml-0',
                       childActive ? 'text-[#C62828]' : 'text-gray-400 hover:text-white',
