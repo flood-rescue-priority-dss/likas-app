@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Map, TrendingUp, Shield, Pencil } from 'lucide-react';
-import AppShell from '../components/layout/AppShell';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -81,7 +80,7 @@ export default function StreetRegistryDetailPage() {
     : undefined;
 
   return (
-    <AppShell defaultExpanded={false}>
+    <>
       <div className="p-10">
         <PageHeader
           title="STREET REGISTRY"
@@ -157,6 +156,6 @@ export default function StreetRegistryDetailPage() {
           />
         </div>
       </div>
-    </AppShell>
+    </>
   );
 }

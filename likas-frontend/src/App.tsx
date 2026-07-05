@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AppShell from './components/layout/AppShell';
 
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -25,17 +26,30 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { user } = useAuth();
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+
   return (
     <Routes>
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
-      <Route path="/dashboard/*" element={<AuthGuard><DashboardPage /></AuthGuard>} />
-      <Route path="/flood-records" element={<AuthGuard><SelectionPage mode="flood" /></AuthGuard>} />
-      <Route path="/flood-records/:barangayId" element={<AuthGuard><FloodRecordsDetailPage /></AuthGuard>} />
-      <Route path="/population" element={<AuthGuard><PopulationVulnerabilityPage /></AuthGuard>} />
-      <Route path="/street-registry" element={<AuthGuard><SelectionPage mode="street" /></AuthGuard>} />
-      <Route path="/street-registry/:barangayId" element={<AuthGuard><StreetRegistryDetailPage /></AuthGuard>} />
-      <Route path="/account" element={<AuthGuard><AccountSettingsPage /></AuthGuard>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/*"
+        element={
+          <AuthGuard>
+            <AppShell expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(prev => !prev)}>
+              <Routes>
+                <Route path="dashboard/*" element={<DashboardPage />} />
+                <Route path="flood-records" element={<SelectionPage mode="flood" />} />
+                <Route path="flood-records/:barangayId" element={<FloodRecordsDetailPage />} />
+                <Route path="population" element={<PopulationVulnerabilityPage />} />
+                <Route path="street-registry" element={<SelectionPage mode="street" />} />
+                <Route path="street-registry/:barangayId" element={<StreetRegistryDetailPage />} />
+                <Route path="account" element={<AccountSettingsPage />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </AppShell>
+          </AuthGuard>
+        }
+      />
     </Routes>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AppShell from '../components/layout/AppShell';
 import PageHeader from '../components/ui/PageHeader';
 import DropdownSelect from '../components/ui/DropdownSelect';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
@@ -73,7 +72,7 @@ export default function SelectionPage({ mode }: SelectionPageProps) {
   const title = mode === 'flood' ? 'FLOOD RECORDS' : 'STREET REGISTRY';
 
   return (
-    <AppShell defaultExpanded={false}>
+    <>
       <div className="relative min-h-full p-10">
         <LoadingOverlay visible={loading} message="Loading records..." />
 
@@ -129,7 +128,7 @@ export default function SelectionPage({ mode }: SelectionPageProps) {
           </div>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }
 

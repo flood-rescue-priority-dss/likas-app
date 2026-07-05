@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import AppShell from '../components/layout/AppShell';
 import MetricCard from '../components/ui/MetricCard';
 import PageHeader from '../components/ui/PageHeader';
 import PriorityBadge from '../components/ui/PriorityBadge';
@@ -183,11 +182,11 @@ function DashboardHome() {
 
 export default function DashboardPage() {
   return (
-    <AppShell defaultExpanded={false}>
+    <>
       <Routes>
         <Route index element={<DashboardHome />} />
         <Route path="priority" element={<PriorityListPage />} />
       </Routes>
-    </AppShell>
+    </>
   );
 }

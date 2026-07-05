@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import AppShell from '../components/layout/AppShell';
 import EditOfficeDetailsModal from '../components/modals/EditOfficeDetailsModal';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserAccount } from '../types';
@@ -40,7 +39,7 @@ export default function AccountSettingsPage() {
   };
 
   return (
-    <AppShell defaultExpanded>
+    <>
       <div className="p-10 max-w-3xl">
         <h1 className="text-2xl font-heading font-bold text-gray-900 mb-8">Account Settings</h1>
 
@@ -98,6 +97,6 @@ export default function AccountSettingsPage() {
         account={user}
         onSaved={handleSaved}
       />
-    </AppShell>
+    </>
   );
 }

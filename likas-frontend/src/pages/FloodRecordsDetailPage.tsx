@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Calendar } from 'lucide-react';
-import AppShell from '../components/layout/AppShell';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -92,7 +91,7 @@ export default function FloodRecordsDetailPage() {
   const brgyName = barangay?.name ?? barangayId ?? '';
 
   return (
-    <AppShell defaultExpanded={false}>
+    <>
       <div className="p-10">
         <PageHeader
           title="FLOOD RECORDS"
@@ -248,6 +247,6 @@ export default function FloodRecordsDetailPage() {
         barangayId={barangayId!}
         onSaved={handleIncidentSaved}
       />
-    </AppShell>
+    </>
   );
 }
