@@ -35,14 +35,92 @@ export default function EditOfficeDetailsModal({
     }
   }, [open, account]);
 
-  const handleSaveClick = () => {
-    if (!officeName || !city || !contact) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-    setError('');
-    setShowConfirm(true);
-  };
+const handleSaveClick = () => {
+  let validationError = '';
+
+  validationError =
+    validateOfficeName(officeName) ||
+    validateCity(city) ||
+    (isBarangay
+      ? validateZone(zone)
+      : validateRegion(region)) ||
+    validateContact(contact) ||
+    validateReferenceNo(account.officeReferenceNo);
+
+  if (validationError) {
+    setError(validationError);
+    return;
+  }
+
+  setError('');
+  setShowConfirm(true);
+};
+
+  const validateOfficeName = (value: string) => {
+  const trimmed = value.trim();
+
+  if (!trimmed) return 'Please fill out the required fields.';
+  if (trimmed.length < 3 || trimmed.length > 100) {
+    return 'Office Name must be between 3 and 100 characters.';
+  }
+
+  return '';
+};
+
+const validateCity = (value: string) => {
+  const trimmed = value.trim();
+
+  if (!trimmed) return 'City/Municipality is required.';
+
+  if (!/^[A-Za-z0-9\s]+$/.test(trimmed)) {
+    return 'Only letters and numbers are allowed.';
+  }
+
+  return '';
+};
+
+const validateRegion = (value: string) => {
+  const trimmed = value.trim();
+
+  if (!trimmed) return 'Region is required.';
+
+  if (!/^[A-Za-z0-9\s]+$/.test(trimmed)) {
+    return 'Only letters and numbers are allowed.';
+  }
+
+  return '';
+};
+
+const validateZone = (value: string) => {
+  if (!value.trim()) return 'Zone is required.';
+  return '';
+};
+
+const validateContact = (value: string) => {
+  const trimmed = value.trim();
+
+  if (!trimmed) return 'Office Contact No. is required.';
+
+  if (!/^\+?\d+$/.test(trimmed)) {
+    return 'Only numbers and an optional + sign are allowed.';
+  }
+
+  if (trimmed.length !== 13) {
+    return 'Office Contact No. must be exactly 13 characters.';
+  }
+
+  return '';
+};
+
+const validateReferenceNo = (value: string) => {
+  if (!value.trim()) return 'Office Reference No. is required.';
+
+  if (!/^[A-Za-z0-9-]+$/.test(value)) {
+    return 'Only letters, numbers, and hyphens are allowed.';
+  }
+
+  return '';
+};
 
   const handleConfirm = async (password: string) => {
     const ok = await authService.verifyPassword(account.registeredEmail, password);
@@ -67,14 +145,44 @@ export default function EditOfficeDetailsModal({
 
   const isBarangay = account.role === 'barangay';
 
-  const formFields = [
-    { label: 'Office Name', value: officeName, onChange: setOfficeName, type: 'text' },
-    { label: 'City/Municipality', value: city, onChange: setCity, type: 'text' },
-    isBarangay
-      ? { label: 'Zone', value: zone, onChange: setZone, type: 'text' }
-      : { label: 'Region', value: region, onChange: setRegion, type: 'text' },
-    { label: 'Office Contact No.', value: contact, onChange: setContact, type: 'tel' },
-  ];
+const formFields = [
+  {
+    label: 'Office Name',
+    value: officeName,
+    onChange: setOfficeName,
+    type: 'text',
+    placeholder: 'Enter office name',
+  },
+  {
+    label: 'City/Municipality',
+    value: city,
+    onChange: setCity,
+    type: 'text',
+    placeholder: 'e.g. Manila City',
+  },
+  isBarangay
+    ? {
+        label: 'Zone',
+        value: zone,
+        onChange: setZone,
+        type: 'text',
+        placeholder: 'e.g. Zone 1',
+      }
+    : {
+        label: 'Region',
+        value: region,
+        onChange: setRegion,
+        type: 'text',
+        placeholder: 'e.g. NCR',
+      },
+  {
+    label: 'Office Contact No.',
+    value: contact,
+    onChange: setContact,
+    type: 'tel',
+    placeholder: 'e.g. 09XXXXXXXXX or +639XXXXXXXXX',
+  },
+];
 
   return (
     <>
@@ -89,10 +197,37 @@ export default function EditOfficeDetailsModal({
           {formFields.map(f => (
             <div key={f.label} className="grid grid-cols-5 items-center gap-4">
               <label className="col-span-2 text-sm font-inter font-medium text-gray-600">{f.label}</label>
-              <input
-                type={f.type}
-                value={f.value}
-                onChange={e => f.onChange(e.target.value)}
+                <input
+                  type={f.type}
+                  value={f.value}
+                  placeholder={f.placeholder}
+                  onChange={(e) => {
+                    let value = e.target.value;
+
+                    if (f.label === 'City/Municipality') {
+                      value = value.replace(/[^A-Za-z0-9\s]/g, '');
+                    }
+
+                    if (f.label === 'Region') {
+                      value = value.replace(/[^A-Za-z0-9\s]/g, '');
+                    }
+
+                    if (f.label === 'Office Contact No.') {
+                      value = value.replace(/(?!^\+)[^\d]/g, '');
+
+                      if (value.startsWith('+')) {
+                        value = '+' + value.substring(1).replace(/\+/g, '');
+                      }
+
+                      value = value.slice(0, 13);
+                    }
+
+                    f.onChange(value);
+
+                    if (error) {
+                      setError('');
+                    }
+                  }}
                 className="col-span-3 px-4 py-3 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
               />
             </div>
