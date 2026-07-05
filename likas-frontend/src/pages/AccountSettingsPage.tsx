@@ -1,19 +1,34 @@
 import React, { useState } from 'react';
 import EditOfficeDetailsModal from '../components/modals/EditOfficeDetailsModal';
+import ChangePasswordModal from '../components/modals/ChangePasswordModal';
+import ChangeEmailModal from '../components/modals/ChangeEmailModal';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserAccount } from '../types';
 import { format } from 'date-fns';
 import PageHeader from '../components/ui/PageHeader';
 
-function DetailRow({ label, value, link }: { label: string; value: React.ReactNode; link?: boolean }) {
+function DetailRow({
+  label,
+  value,
+  link,
+  onLinkClick,
+}: {
+  label: string;
+  value: React.ReactNode;
+  link?: boolean;
+  onLinkClick?: () => void;
+}) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
       <span className="text-sm font-inter text-gray-500 w-40 flex-shrink-0">{label}</span>
       <span className="flex-1 text-sm font-inter font-medium text-gray-800">{value}</span>
       {link && (
-        <a href="#" className="text-sm font-inter font-medium text-[#1B75BC] hover:underline ml-4 flex-shrink-0">
+        <button
+          onClick={onLinkClick}
+          className="text-sm font-inter font-medium text-[#1B75BC] hover:underline ml-4 flex-shrink-0"
+        >
           Change
-        </a>
+        </button>
       )}
     </div>
   );
@@ -22,6 +37,8 @@ function DetailRow({ label, value, link }: { label: string; value: React.ReactNo
 export default function AccountSettingsPage() {
   const { user, updateUser } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
+  const [pwModalOpen, setPwModalOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   if (!user) return null;
 
@@ -44,16 +61,14 @@ export default function AccountSettingsPage() {
   return (
     <>
       <div className="p-10 max-w-3xl">
-        <PageHeader
-          title="ACCOUNT SETTINGS"
-          titleUppercase
-        />
+        <PageHeader title="ACCOUNT SETTINGS" titleUppercase />
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Card heading */}
           <div className="px-8 pt-8 pb-4">
             <h2 className="text-3xl font-heading font-black text-gray-900">{user.officeName}</h2>
           </div>
+
           <div className="mx-8 border-t border-gray-100" />
 
           {/* Office Details */}
@@ -68,13 +83,13 @@ export default function AccountSettingsPage() {
                 Edit Details
               </button>
             </div>
-
             <div>
               <DetailRow label="City/Municipality" value={user.cityMunicipality} />
-              {isBarangay
-                ? <DetailRow label="Zone" value={user.zone ?? '—'} />
-                : <DetailRow label="Region" value={user.region ?? '—'} />
-              }
+              {isBarangay ? (
+                <DetailRow label="Zone" value={user.zone ?? '—'} />
+              ) : (
+                <DetailRow label="Region" value={user.region ?? '—'} />
+              )}
               <DetailRow label="Office Contact" value={user.officeContact} />
               <DetailRow label="Office Reference No." value={user.officeReferenceNo} />
             </div>
@@ -86,11 +101,22 @@ export default function AccountSettingsPage() {
           <div className="px-8 pt-6 pb-8">
             <p className="text-xs font-inter text-gray-400 uppercase tracking-widest mb-3">Account access</p>
             <div>
-              <DetailRow label="Registered email" value={user.registeredEmail} link />
-              <DetailRow label="Password" value="••••••••••••" link />
-              <DetailRow label="Role" value={
-                <span className="capitalize">{user.role === 'admin' ? 'Administrator' : 'Barangay'}</span>
-              } />
+              <DetailRow
+                label="Registered email"
+                value={user.registeredEmail}
+                link
+                onLinkClick={() => setEmailModalOpen(true)}
+              />
+              <DetailRow
+                label="Password"
+                value="••••••••••••"
+                link
+                onLinkClick={() => setPwModalOpen(true)}
+              />
+              <DetailRow
+                label="Role"
+                value={<span className="capitalize">{user.role === 'admin' ? 'Administrator' : 'Barangay'}</span>}
+              />
               <DetailRow label="Last login" value={formatDate(user.lastLogin)} />
             </div>
           </div>
@@ -102,6 +128,12 @@ export default function AccountSettingsPage() {
         onClose={() => setEditOpen(false)}
         account={user}
         onSaved={handleSaved}
+      />
+      <ChangePasswordModal open={pwModalOpen} onClose={() => setPwModalOpen(false)} />
+      <ChangeEmailModal
+        open={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        currentEmail={user.registeredEmail}
       />
     </>
   );
