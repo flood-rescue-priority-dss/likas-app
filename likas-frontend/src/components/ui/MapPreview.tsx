@@ -7,6 +7,7 @@ interface MapPreviewProps {
   markerLabel?: string;
   height?: string;
   className?: string;
+  interactive?: boolean;
 }
 
 export default function MapPreview({
@@ -16,6 +17,7 @@ export default function MapPreview({
   markerLabel,
   height = '300px',
   className = '',
+  interactive = true,
 }: MapPreviewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -49,8 +51,11 @@ export default function MapPreview({
       const map = L.map(mapRef.current!, {
         center: center,
         zoom: zoom,
-        zoomControl: true,
-        scrollWheelZoom: false,
+        zoomControl: interactive,
+        scrollWheelZoom: interactive,
+        dragging: interactive,
+        doubleClickZoom: interactive,
+        touchZoom: interactive,
         attributionControl: false,
       });
 
@@ -81,6 +86,14 @@ export default function MapPreview({
       }
 
       mapInstanceRef.current = map;
+      
+      // Force Leaflet to recalculate container size after DOM paint
+      // This fixes the blank gray box issue inside flex/dynamic layouts
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
     });
 
     return () => {

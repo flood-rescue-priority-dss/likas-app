@@ -4,7 +4,7 @@ import AppShell from '../components/layout/AppShell';
 import PageHeader from '../components/ui/PageHeader';
 import DropdownSelect from '../components/ui/DropdownSelect';
 import LoadingOverlay from '../components/ui/LoadingOverlay';
-import { geoService } from '../services';
+import { geoService, authService } from '../services';
 import type { District, City, Barangay } from '../types';
 
 interface SelectionPageProps {
@@ -25,10 +25,19 @@ export default function SelectionPage({ mode }: SelectionPageProps) {
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    geoService.getDistricts().then(setDistricts);
-  }, []);
+    authService.getCurrentUser().then(user => {
+      if (user && user.role === 'barangay') {
+        const path = mode === 'flood' ? '/flood-records' : '/street-registry';
+        navigate(`${path}/${user.id}`, { replace: true });
+      } else {
+        geoService.getDistricts().then(setDistricts);
+        setCheckingAuth(false);
+      }
+    });
+  }, [mode, navigate]);
 
   const handleDistrictChange = async (id: string) => {
     setDistrictId(id); setCityId(''); setBarangayId(''); setCities([]); setBarangays([]);
@@ -74,45 +83,51 @@ export default function SelectionPage({ mode }: SelectionPageProps) {
           search={{ value: search, onChange: setSearch, placeholder: 'Search' }}
         />
 
-        <div className="max-w-2xl space-y-4">
-          {/* District card */}
-          <SelectionCard label="Select District">
-            <DropdownSelect
-              options={districts.map(d => ({ value: d.id, label: d.name }))}
-              value={districtId}
-              onChange={handleDistrictChange}
-              placeholder="Choose a district to continue"
-              disabled={fetching && !districtId}
-              className="max-w-sm"
-            />
-          </SelectionCard>
-
-          {/* City card */}
-          {districtId && (
-            <SelectionCard label="Select City">
+        {checkingAuth ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="spinner-dark" />
+          </div>
+        ) : (
+          <div className="max-w-2xl space-y-4">
+            {/* District card */}
+            <SelectionCard label="Select District">
               <DropdownSelect
-                options={cities.map(c => ({ value: c.id, label: c.name }))}
-                value={cityId}
-                onChange={handleCityChange}
-                placeholder="Choose a city to continue"
+                options={districts.map(d => ({ value: d.id, label: d.name }))}
+                value={districtId}
+                onChange={handleDistrictChange}
+                placeholder="Choose a district to continue"
+                disabled={fetching && !districtId}
                 className="max-w-sm"
               />
             </SelectionCard>
-          )}
 
-          {/* Barangay card */}
-          {cityId && (
-            <SelectionCard label="Select Barangay">
-              <DropdownSelect
-                options={barangays.map(b => ({ value: b.id, label: b.name }))}
-                value={barangayId}
-                onChange={handleBarangayChange}
-                placeholder="Choose a barangay to continue"
-                className="max-w-sm"
-              />
-            </SelectionCard>
-          )}
-        </div>
+            {/* City card */}
+            {districtId && (
+              <SelectionCard label="Select City">
+                <DropdownSelect
+                  options={cities.map(c => ({ value: c.id, label: c.name }))}
+                  value={cityId}
+                  onChange={handleCityChange}
+                  placeholder="Choose a city to continue"
+                  className="max-w-sm"
+                />
+              </SelectionCard>
+            )}
+
+            {/* Barangay card */}
+            {cityId && (
+              <SelectionCard label="Select Barangay">
+                <DropdownSelect
+                  options={barangays.map(b => ({ value: b.id, label: b.name }))}
+                  value={barangayId}
+                  onChange={handleBarangayChange}
+                  placeholder="Choose a barangay to continue"
+                  className="max-w-sm"
+                />
+              </SelectionCard>
+            )}
+          </div>
+        )}
       </div>
     </AppShell>
   );

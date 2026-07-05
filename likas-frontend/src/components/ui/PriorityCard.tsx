@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapPin, TrendingUp, Droplets } from 'lucide-react';
 import type { PriorityItem } from '../../types';
 import PriorityBadge from './PriorityBadge';
+import MapPreview from './MapPreview';
 
 interface PriorityCardProps {
   item: PriorityItem;
-  onClick?: () => void;
 }
 
 const SCORE_COLOR: Record<string, string> = {
@@ -14,11 +14,32 @@ const SCORE_COLOR: Record<string, string> = {
   'Low': 'text-emerald-600',
 };
 
-export default function PriorityCard({ item, onClick }: PriorityCardProps) {
+export default function PriorityCard({ item }: PriorityCardProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '100px' }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
-      onClick={onClick}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer group"
+      ref={cardRef}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group flex flex-col h-full"
     >
       {/* Top bar */}
       <div className="px-5 pt-4 pb-3 flex items-center justify-between">
@@ -28,19 +49,29 @@ export default function PriorityCard({ item, onClick }: PriorityCardProps) {
         </span>
       </div>
 
-      {/* Map thumbnail placeholder */}
-      <div className="mx-4 h-28 bg-gradient-to-br from-[#E8F1F8] to-[#D0E4F0] rounded-xl flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `repeating-linear-gradient(0deg, #1B75BC 0, #1B75BC 1px, transparent 1px, transparent 20px),
-                              repeating-linear-gradient(90deg, #1B75BC 0, #1B75BC 1px, transparent 1px, transparent 20px)`,
-          }}
-        />
-        <div className="flex flex-col items-center gap-1 z-10">
-          <MapPin size={24} className="text-[#C62828]" />
-          <span className="text-xs font-inter text-gray-500 font-medium">{item.barangay}</span>
-        </div>
+      {/* Static Literal Map Thumbnail */}
+      <div className="mx-4 h-48 rounded-xl overflow-hidden relative bg-gray-50 flex items-center justify-center">
+        {isVisible ? (
+          <MapPreview
+            center={[item.lat, item.lng]}
+            zoom={16}
+            markerPosition={[item.lat, item.lng]}
+            height="100%"
+            className="border-0 rounded-xl w-full"
+            interactive={false}
+          />
+        ) : (
+          <div className="flex flex-col items-center text-gray-400">
+            <div className="spinner-dark w-6 h-6 mb-2" />
+            <span className="text-xs font-inter font-medium">Loading Map...</span>
+          </div>
+        )}
+        
+        {/* Overlay block to intercept ANY accidental clicks if Leaflet misses something */}
+        <div className="absolute inset-0 z-[1000] cursor-default bg-transparent"></div>
       </div>
+
+
 
       {/* Details */}
       <div className="px-5 py-4">
