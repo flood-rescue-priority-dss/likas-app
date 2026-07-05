@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, CloudRain, Users, Map, UserCircle,
@@ -26,7 +26,7 @@ const navItems: NavItem[] = [
     children: [{ to: '/dashboard/priority', label: 'Priority List' }],
   },
   { to: '/flood-records', icon: <CloudRain size={20} />, label: 'Flood Records' },
-  { to: '/population', icon: <Users size={20} />, label: 'Barangay Vulnerability' },
+  { to: '/population', icon: <Users size={20} />, label: 'Population Vulnerability' },
   { to: '/street-registry', icon: <Map size={20} />, label: 'Street Registry' },
   { to: '/account', icon: <UserCircle size={20} />, label: 'Account' },
 ];
@@ -36,14 +36,44 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+
+useEffect(() => {
+ const recalc = () => {
+  const activeEl = navRef.current?.querySelector('[data-active="true"]') as HTMLElement;
+  if (!activeEl || !sliderRef.current || !navRef.current) return;
+  const navTop = navRef.current.getBoundingClientRect().top;
+  const elRect = activeEl.getBoundingClientRect();
+  const isChild = activeEl.dataset.navType === 'child';
+
+  sliderRef.current.style.top = `${elRect.top - navTop + navRef.current.scrollTop}px`;
+  sliderRef.current.style.height = `${elRect.height}px`;
+
+  if (isChild) {
+    sliderRef.current.style.left = '20px';
+    sliderRef.current.style.right = '12px';
+    sliderRef.current.style.borderRadius = '9999px';
+  } else {
+    sliderRef.current.style.left = '12px';
+    sliderRef.current.style.right = '0px';
+    sliderRef.current.style.borderRadius = '9999px 0 0 9999px';
+  }
+
+  sliderRef.current.style.opacity = '1';
+};
+
+  recalc();
+  if (!navRef.current) return;
+  const ro = new ResizeObserver(recalc);
+  ro.observe(navRef.current);
+  navRef.current.querySelectorAll('a').forEach(el => ro.observe(el));
+  return () => ro.disconnect();
+}, [location.pathname, expanded]);
+
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-  const isActive = (to: string, end = false) => {
-    if (end) return location.pathname === to;
-    return location.pathname.startsWith(to);
   };
 
   return (
@@ -65,44 +95,61 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
       </div>
 
       {/* Nav Items */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto overflow-x-hidden">
+      <nav
+        ref={navRef}
+        className="flex-1 px-3 space-y-1 overflow-y-auto overflow-x-hidden relative"
+      >
+        {/* The single sliding pill */}
+        <div
+          ref={sliderRef}
+          className="absolute bg-[#F0F4F7] pointer-events-none z-0 opacity-0"
+          style={{
+            transition: 'top 0.35s cubic-bezier(0.4,0,0.2,1), height 0.35s cubic-bezier(0.4,0,0.2,1), left 0.35s ease, right 0.35s ease, border-radius 0.35s ease',
+          }}
+        />
         {navItems.map((item) => {
           const dashboardActive = item.to === '/dashboard' && location.pathname.startsWith('/dashboard');
-          const isAccount = item.to === '/account';
+          const childRouteActive = dashboardActive && location.pathname !== '/dashboard';
 
           return (
             <div key={item.to}>
               <NavLink
                 to={item.to}
                 end={item.to === '/dashboard'}
+                data-active={
+                  (location.pathname === item.to ||
+                  (item.to === '/dashboard' && location.pathname === '/dashboard'))
+                    ? 'true'
+                    : 'false'
+                }
                 className={({ isActive: navIsActive }) => {
                   const activeState = navIsActive || dashboardActive;
-                  return `flex items-center gap-3 px-3 py-2.5 rounded-l-full rounded-r-none transition-all duration-200 group ${
-                    activeState && !item.children
-                      ? 'bg-[#F0F4F7] text-[#C62828]'
-                      : dashboardActive && item.children
-                      ? 'text-white bg-white/10'
-                      : 'text-gray-300 hover:bg-white/10 hover:text-white'
-                  }`;
+                  const parentDimmed = childRouteActive && !navIsActive;
+                  return [
+                    'flex items-center gap-3 px-3 py-2.5 rounded-l-full rounded-r-none group relative z-10  w-full',
+                    activeState && !parentDimmed
+                      ? 'text-[#C62828]'
+                      : parentDimmed
+                        ? 'text-white bg-white/10'
+                        : 'text-gray-300 hover:text-white hover:bg-white/10',
+                  ].join(' ');
                 }}
               >
                 {({ isActive: navIsActive }) => {
                   const activeState = navIsActive || dashboardActive;
+                  const parentDimmed = childRouteActive && !navIsActive;
+                  const textColor = activeState && !parentDimmed
+                    ? 'text-[#C62828]'
+                    : parentDimmed
+                      ? 'text-white'
+                      : 'text-gray-300 group-hover:text-white';
                   return (
                     <>
-                      <span className={`flex-shrink-0 ${
-                        activeState && !item.children
-                          ? 'text-[#C62828]'
-                          : 'text-gray-300 group-hover:text-white'
-                      }`}>
+                      <span className={`flex-shrink-0 transition-colors duration-200 ${textColor}`}>
                         {item.icon}
                       </span>
                       {expanded && (
-                        <span className={`font-heading text-sm font-semibold whitespace-nowrap ${
-                          activeState && !item.children
-                            ? 'text-[#C62828]'
-                            : 'text-gray-300 group-hover:text-white'
-                        }`}>
+                        <span className={`font-heading text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${textColor}`}>
                           {item.label}
                         </span>
                       )}
@@ -110,28 +157,35 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
                   );
                 }}
               </NavLink>
+
               {/* Sub-items */}
-              {expanded && item.children?.map(child => {
-                const childActive = location.pathname === child.to;
-                return (
-                  <NavLink
-                    key={child.to}
-                    to={child.to}
-                    className={`flex items-center gap-3 pl-10 pr-3 py-2 ml-2 mt-0.5 rounded-l-full rounded-r-none transition-all duration-200 group ${
-                      childActive
-                        ? 'bg-[#F0F4F7] text-[#C62828]'
-                        : 'text-gray-400 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <ListChecks size={16} className={childActive ? 'text-[#C62828]' : 'text-gray-400 group-hover:text-white'} />
-                    <span className={`font-heading text-sm font-semibold ${
-                      childActive ? 'text-[#C62828]' : 'text-gray-400 group-hover:text-white'
-                    }`}>
-                      {child.label}
-                    </span>
-                  </NavLink>
-                );
-              })}
+                {item.children?.map(child => {
+                  const childActive = location.pathname === child.to;
+                  const childTextColor = childActive
+                    ? 'text-[#C62828]'
+                    : 'text-gray-400 group-hover:text-white';
+
+                  return (
+                    <NavLink
+                      key={child.to}
+                      to={child.to}
+                      data-active={childActive ? 'true' : 'false'}
+                      className={[
+                        'flex items-center gap-3 py-2.5  rounded-l-full rounded-r-none group relative z-10 w-full',
+                        'transition-[padding,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
+                        expanded ? 'pl-10 pr-3 ml-2' : 'pl-5 pr-3 ml-0',
+                        childActive ? 'text-[#C62828]' : 'text-gray-400 hover:text-white hover:bg-white/10',
+                      ].join(' ')}
+                    >
+                      <ListChecks size={18} className={`flex-shrink-0 transition-colors duration-200 ${childTextColor}`} />
+                      {expanded && (
+                        <span className={`font-heading text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${childTextColor}`}>
+                          {child.label}
+                        </span>
+                      )}
+                    </NavLink>
+                  );
+                })}
             </div>
           );
         })}
@@ -141,7 +195,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
       <div className="px-3 pb-6 flex-shrink-0">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-all duration-200"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-all duration-300"
         >
           <LogOut size={18} className="flex-shrink-0" />
           {expanded && <span className="font-heading text-sm font-semibold">Log out</span>}
