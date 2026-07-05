@@ -10,7 +10,8 @@ router.get('/', verifyToken, async (req, res) => {
     let query = `
       SELECT sr.id, b.name AS barangay, sr.street_name AS "streetName",
              sr.priority_score AS "priorityScore", sr.vulnerability_score AS "vulnerabilityScore",
-             sr.priority, sr.flood_count AS "floodCount", sr.last_updated AS "lastUpdated"
+             sr.priority, sr.flood_count AS "floodCount", sr.last_updated AS "lastUpdated",
+             sr.lat, sr.lng
       FROM street_registry sr
       JOIN barangays b ON sr.barangay_id = b.id
       WHERE 1=1

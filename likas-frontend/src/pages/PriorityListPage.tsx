@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '../components/ui/PageHeader';
 import PriorityCard from '../components/ui/PriorityCard';
-import MapPreview from '../components/ui/MapPreview';
 import { priorityService } from '../services';
 import type { PriorityItem, Priority } from '../types';
 
@@ -12,8 +11,6 @@ export default function PriorityListPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<Priority | 'All'>('All');
   const [search, setSearch] = useState('');
-  const [activeStreet, setActiveStreet] = useState<PriorityItem | null>(null);
-
   useEffect(() => {
     setLoading(true);
     priorityService.getPriorityList(activeFilter).then(data => {
@@ -71,31 +68,10 @@ export default function PriorityListPage() {
           <p className="font-inter text-sm">No streets match your filter.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-4 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
-            {filtered.map(item => (
-              <div 
-                key={item.id} 
-                className={activeStreet?.id === item.id ? 'ring-2 ring-[#1B75BC] rounded-2xl' : ''}
-              >
-                <PriorityCard item={item} onClick={() => setActiveStreet(item)} />
-              </div>
-            ))}
-          </div>
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sticky top-6">
-              <h2 className="font-heading font-semibold text-gray-800 text-base mb-3">
-                {activeStreet ? activeStreet.streetName : 'City of Manila, Philippines'}
-              </h2>
-              <MapPreview
-                center={activeStreet ? [activeStreet.lat, activeStreet.lng] : [14.5995, 120.9842]}
-                zoom={activeStreet ? 17 : 13}
-                markerPosition={activeStreet ? [activeStreet.lat, activeStreet.lng] : [14.5995, 120.9842]}
-                markerLabel={activeStreet ? activeStreet.streetName : 'City of Manila'}
-                height="600px"
-              />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 custom-scrollbar">
+          {filtered.map(item => (
+            <PriorityCard key={item.id} item={item} />
+          ))}
         </div>
       )}
     </div>
