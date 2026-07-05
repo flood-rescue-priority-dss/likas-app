@@ -73,7 +73,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
   return (
     <aside
       className="flex flex-col h-full bg-[#050A30] flex-shrink-0 transition-all duration-300"
-      style={{ width: expanded ? '280px' : '80px' }}
+      style={{ width: expanded ? '250px' : '80px' }}
     >
       {/* Logo / Toggle */}
       <div
