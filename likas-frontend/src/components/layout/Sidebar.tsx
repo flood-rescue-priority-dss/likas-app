@@ -5,6 +5,7 @@ import {
   LogOut, ListChecks
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import likasLogo from '../../assets/likas_logo.jpg';
 
 interface SidebarProps {
   expanded: boolean;
@@ -80,8 +81,9 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
         className="flex items-center gap-3 px-4 py-6 cursor-pointer select-none flex-shrink-0 "
         onClick={onToggle}
       >
-        <div className="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-[0_0_6px_1px_rgba(255,255,255,0.3)]">
-          <span className="text-[#050A30] font-bold text-sm font-heading ">L</span>
+        <div className="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center transition-all duration-300 bg-cover bg-center hover:scale-105 hover:shadow-[0_0_6px_1px_rgba(255,255,255,0.3)]"
+        style={{ backgroundImage: `url(${likasLogo})` }}>
+
         </div>
         {expanded && (
           <span className="text-white font-heading font-bold text-2xl tracking-wide">LIKAS</span>

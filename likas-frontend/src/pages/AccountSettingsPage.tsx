@@ -3,6 +3,7 @@ import EditOfficeDetailsModal from '../components/modals/EditOfficeDetailsModal'
 import { useAuth } from '../contexts/AuthContext';
 import type { UserAccount } from '../types';
 import { format } from 'date-fns';
+import PageHeader from '../components/ui/PageHeader';
 
 function DetailRow({ label, value, link }: { label: string; value: React.ReactNode; link?: boolean }) {
   return (
@@ -32,7 +33,9 @@ export default function AccountSettingsPage() {
 
   const formatDate = (iso: string) => {
     try {
-      return format(new Date(iso), 'MMM d, yyyy, h:mm aa');
+      const date = new Date(iso);
+      const phDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+      return format(phDate, 'MMM d, yyyy, h:mm aa');
     } catch {
       return iso;
     }
@@ -41,7 +44,10 @@ export default function AccountSettingsPage() {
   return (
     <>
       <div className="p-10 max-w-3xl">
-        <h1 className="text-2xl font-heading font-bold text-gray-900 mb-8">Account Settings</h1>
+        <PageHeader
+          title="ACCOUNT SETTINGS"
+          titleUppercase
+        />
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Card heading */}
