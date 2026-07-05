@@ -52,7 +52,7 @@ export default function StreetRegistryDetailPage() {
     { key: 'streetName', header: 'Street Name', render: r => (
       <span className="font-semibold text-gray-800">{r.streetName}</span>
     )},
-    { key: 'priorityScore', header: 'Priority Score', render: r => (
+    { key: 'priorityScore', header: 'Flood Level', render: r => (
       <span className="font-heading font-bold text-gray-700">{r.priorityScore}</span>
     )},
     { key: 'priority', header: 'Priority', render: r => <PriorityBadge priority={r.priority} size="sm" /> },
