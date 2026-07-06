@@ -74,7 +74,7 @@ export default function AccountSettingsPage() {
           {/* Office Details */}
           <div className="px-8 pt-6 pb-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-inter text-gray-400 uppercase tracking-widest">Office details</p>
+              <p className="text-sm font-inter uppercase text-gray-400">Office details</p>
               <button
                 id="edit-details-btn"
                 onClick={() => setEditOpen(true)}
@@ -99,7 +99,7 @@ export default function AccountSettingsPage() {
 
           {/* Account Access */}
           <div className="px-8 pt-6 pb-8">
-            <p className="text-xs font-inter text-gray-400 uppercase tracking-widest mb-3">Account access</p>
+            <p className="text-sm font-inter uppercase text-gray-400 mb-3">Account access</p>
             <div>
               <DetailRow
                 label="Registered email"

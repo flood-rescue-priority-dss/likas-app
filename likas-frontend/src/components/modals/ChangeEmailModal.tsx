@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CheckCircle2, X } from 'lucide-react';
 import ConfirmPasswordModal from './ConfirmPasswordModal';
+import { authService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 
 type Step = 'confirmPassword' | 'form' | 'verify' | 'success';
 
@@ -11,31 +13,56 @@ interface ChangeEmailModalProps {
 }
 
 export default function ChangeEmailModal({ open, onClose, currentEmail }: ChangeEmailModalProps) {
+  const { logout } = useAuth();
   const [step, setStep] = useState<Step>('confirmPassword');
-  const [currentEmailInput, setCurrentEmailInput] = useState(currentEmail);
   const [newEmail, setNewEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
+  const [formError, setFormError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   if (!open) return null;
 
   const resetAndClose = () => {
     setStep('confirmPassword');
-    setCurrentEmailInput(currentEmail);
     setNewEmail('');
     setVerificationCode('');
+    setFormError('');
     onClose();
   };
 
-  const handleVerifyEmail = (e: React.FormEvent) => {
+  const handleVerifyEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: trigger backend to send verification code to newEmail
-    setStep('verify');
+    setFormError('');
+
+    if (!newEmail) { setFormError('Please enter a new email address.'); return; }
+    if (newEmail === currentEmail) { setFormError('New email must be different from your current email.'); return; }
+
+    setLoading(true);
+    try {
+      await authService.requestEmailChange(newEmail);
+      setStep('verify');
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Failed to send verification code.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmitCode = (e: React.FormEvent) => {
+  const handleSubmitCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: verify code against backend
-    setStep('success');
+    setFormError('');
+
+    if (!verificationCode) { setFormError('Please enter the verification code.'); return; }
+
+    setLoading(true);
+    try {
+      await authService.confirmEmailChange(verificationCode);
+      setStep('success');
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Invalid or expired code.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,9 +70,9 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
       <ConfirmPasswordModal
         open={step === 'confirmPassword'}
         onCancel={resetAndClose}
-        onConfirm={(password) => {
-          // TODO: verify password against backend
-          console.log('Verifying password:', password);
+        onConfirm={async (password) => {
+          // Throws on incorrect password — ConfirmPasswordModal surfaces the error
+          await authService.verifyPassword(password);
           setStep('form');
         }}
       />
@@ -67,9 +94,9 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
                     Current Email
                   </label>
                   <input
-                    value={currentEmailInput}
-                    onChange={e => setCurrentEmailInput(e.target.value)}
-                    className="col-span-3 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-inter bg-[#F8F9FC] focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC] focus:bg-white transition-all"
+                    value={currentEmail}
+                    readOnly
+                    className="col-span-3 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-inter bg-gray-50 text-gray-400 cursor-default"
                   />
                 </div>
                 <div className="grid grid-cols-5 items-center gap-4">
@@ -85,6 +112,10 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
                   />
                 </div>
 
+                {formError && (
+                  <p className="text-xs text-[#C62828] font-inter">{formError}</p>
+                )}
+
                 <div className="border-t border-gray-100 pt-5 flex justify-between">
                   <button
                     type="button"
@@ -95,9 +126,10 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-[#050A30] hover:bg-[#0a1545] text-white font-heading font-semibold text-sm rounded-xl transition-colors"
+                    disabled={loading}
+                    className="px-5 py-2.5 bg-[#050A30] hover:bg-[#0a1545] disabled:opacity-60 text-white font-heading font-semibold text-sm rounded-xl transition-colors"
                   >
-                    Verify Email
+                    {loading ? 'Sending...' : 'Verify Email'}
                   </button>
                 </div>
               </form>
@@ -114,13 +146,14 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
               </div>
 
               <form onSubmit={handleSubmitCode} className="space-y-4">
-
-                <div className="text-sm flex flex-col items-center text-center font-inter font-regular text-gray-600 ">
+                <div className="text-sm flex flex-col items-center text-center font-inter font-regular text-gray-600">
                   <p className="max-w-sm">
-                    A 6-digit verification code was sent to [new email]. Enter it below to confirm the change.
+                    A 6-digit verification code was sent to{' '}
+                    <span className="font-medium text-gray-800">{newEmail}</span>.
+                    Enter it below to confirm the change.
                   </p>
                 </div>
-                <div className=" pt-0 grid grid-cols-5 items-center gap-8">
+                <div className="grid grid-cols-5 items-center gap-8">
                   <label className="col-span-2 text-sm font-inter font-medium text-gray-600">
                     Verification Code
                   </label>
@@ -128,9 +161,14 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
                     value={verificationCode}
                     onChange={e => setVerificationCode(e.target.value)}
                     placeholder="XXXXXX"
+                    maxLength={6}
                     className="col-span-3 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-inter bg-[#F8F9FC] focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC] focus:bg-white transition-all"
                   />
                 </div>
+
+                {formError && (
+                  <p className="text-xs text-[#C62828] font-inter">{formError}</p>
+                )}
 
                 <div className="border-t border-gray-100 pt-5 flex justify-between">
                   <button
@@ -142,9 +180,10 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-[#050A30] hover:bg-[#0a1545] text-white font-heading font-semibold text-sm rounded-xl transition-colors"
+                    disabled={loading}
+                    className="px-5 py-2.5 bg-[#050A30] hover:bg-[#0a1545] disabled:opacity-60 text-white font-heading font-semibold text-sm rounded-xl transition-colors"
                   >
-                    Submit
+                    {loading ? 'Submitting...' : 'Submit'}
                   </button>
                 </div>
               </form>
@@ -159,10 +198,10 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
                 Your email has been changed successfully. Please log in again with your new email.
               </p>
               <button
-                onClick={resetAndClose}
+                onClick={() => { resetAndClose(); logout(); }}
                 className="px-6 py-2.5 bg-[#050A30] hover:bg-[#0a1545] text-white font-heading font-semibold text-sm rounded-xl transition-colors"
               >
-                Submit
+                Log In Again
               </button>
             </div>
           )}
