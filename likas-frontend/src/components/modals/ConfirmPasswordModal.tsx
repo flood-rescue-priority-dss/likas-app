@@ -1,6 +1,5 @@
-// components/modals/ConfirmPasswordModal.tsx
 import React, { useState } from 'react';
-import { AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 interface ConfirmPasswordModalProps {
   open: boolean;
@@ -23,7 +22,11 @@ export default function ConfirmPasswordModal({ open, onCancel, onConfirm }: Conf
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm p-8 text-center">
-        <AlertCircle className="mx-auto mb-4 text-gray-700" size={40} strokeWidth={1.5} />
+        <div className="flex justify-center mb-5">
+          <div className="w-16 h-16 rounded-full border-2 border-amber-400 flex items-center justify-center">
+            <AlertTriangle size={28} className="text-amber-500" />
+          </div>
+        </div>
         <h3 className="font-heading font-bold text-xl text-gray-900 mb-2">Password Confirmation Required</h3>
         <p className="text-sm font-inter text-gray-500 mb-5">
           For your security, please re-enter your password to continue.

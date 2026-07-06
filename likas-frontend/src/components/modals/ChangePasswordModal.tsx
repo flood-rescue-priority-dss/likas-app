@@ -46,9 +46,9 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
       {step !== 'confirm' && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           {step === 'form' && (
-            <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8">
+            <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl p-8">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-sm font-inter text-gray-400 uppercase tracking-widest">Change Password</h3>
+                <h3 className="text-sm font-inter uppercase text-gray-400">Change Password</h3>
                 <button onClick={resetAndClose} className="text-gray-400 hover:text-gray-600">
                   <X size={18} />
                 </button>
@@ -128,9 +128,9 @@ function Field({
   showToggle?: boolean;
 }) {
   return (
-    <div>
-      <label className="block text-xs font-inter font-medium text-gray-600 mb-1.5">{label}</label>
-      <div className="relative">
+    <div className="grid grid-cols-5 items-center gap-10">
+      <label className="col-span-2 text-sm font-inter font-medium text-gray-600">{label}</label>
+      <div className="col-span-3 relative">
         <input
           type={type}
           value={value}
