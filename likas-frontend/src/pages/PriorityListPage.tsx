@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '../components/ui/PageHeader';
 import PriorityCard from '../components/ui/PriorityCard';
+import StreetHistoryModal from '../components/modals/StreetHistoryModal';
 import { priorityService } from '../services';
 import type { PriorityItem, Priority } from '../types';
 
@@ -11,6 +12,8 @@ export default function PriorityListPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<Priority | 'All'>('All');
   const [search, setSearch] = useState('');
+  const [selectedItem, setSelectedItem] = useState<PriorityItem | null>(null);
+
   useEffect(() => {
     setLoading(true);
     priorityService.getPriorityList(activeFilter).then(data => {
@@ -70,10 +73,20 @@ export default function PriorityListPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 custom-scrollbar">
           {filtered.map(item => (
-            <PriorityCard key={item.id} item={item} />
+            <PriorityCard 
+              key={item.id} 
+              item={item} 
+              onViewDetails={() => setSelectedItem(item)} 
+            />
           ))}
         </div>
       )}
+
+      <StreetHistoryModal 
+        open={!!selectedItem} 
+        onClose={() => setSelectedItem(null)} 
+        item={selectedItem} 
+      />
     </div>
   );
 }

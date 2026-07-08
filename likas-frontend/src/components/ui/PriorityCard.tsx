@@ -6,6 +6,7 @@ import MapPreview from './MapPreview';
 
 interface PriorityCardProps {
   item: PriorityItem;
+  onViewDetails?: () => void;
 }
 
 const SCORE_COLOR: Record<string, string> = {
@@ -14,7 +15,7 @@ const SCORE_COLOR: Record<string, string> = {
   'Low': 'text-emerald-600',
 };
 
-export default function PriorityCard({ item }: PriorityCardProps) {
+export default function PriorityCard({ item, onViewDetails }: PriorityCardProps) {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +92,17 @@ export default function PriorityCard({ item }: PriorityCardProps) {
           </div>
         </div>
       </div>
+
+      {onViewDetails && (
+        <div className="border-t border-gray-100 p-3 bg-gray-50/50 mt-auto transition-colors group-hover:bg-[#1B75BC]/5">
+          <button 
+            onClick={onViewDetails}
+            className="w-full text-center text-xs font-inter font-semibold text-[#1B75BC] hover:text-[#050A30] transition-colors"
+          >
+            View Details & History
+          </button>
+        </div>
+      )}
     </div>
   );
 }
