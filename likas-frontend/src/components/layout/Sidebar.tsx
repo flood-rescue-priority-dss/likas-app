@@ -2,8 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, CloudRain, Users, Map, UserCircle,
-  LogOut, ListChecks
+  LogOut, ListChecks, AlertTriangle
 } from 'lucide-react';
+import Modal from '../ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import likasLogo from '../../assets/likas_logo.jpg';
 
@@ -36,6 +37,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
 
   const sliderRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -66,7 +68,12 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
     return () => ro.disconnect();
   }, [location.pathname, expanded]);
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
     logout();
     navigate('/');
   };
@@ -206,13 +213,44 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
       {/* Logout */}
       <div className="px-3 pb-6 flex-shrink-0">
         <button
-          onClick={handleLogout}
+          onClick={handleLogoutClick}
           className="flex items-center gap-3 px-3 h-9 w-full rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-all duration-300"
         >
           <LogOut size={18} className="flex-shrink-0" />
           {expanded && <span className="font-heading text-sm font-semibold whitespace-nowrap">Log out</span>}
         </button>
       </div>
+
+      <Modal
+        open={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        title="Confirm Logout"
+        size="sm"
+      >
+        <div className="flex flex-col items-center justify-center pt-2">
+          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-4 text-[#C62828]">
+            <LogOut size={24} />
+          </div>
+          <h3 className="font-heading font-bold text-gray-900 text-lg mb-2">Are you sure?</h3>
+          <p className="text-gray-500 font-inter text-sm text-center mb-6">
+            You are about to log out of the system.
+          </p>
+          <div className="flex w-full gap-3">
+            <button
+              onClick={() => setShowLogoutConfirm(false)}
+              className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-heading font-semibold text-sm rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmLogout}
+              className="flex-1 py-2.5 bg-[#C62828] hover:bg-red-800 text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      </Modal>
     </aside>
   );
 }

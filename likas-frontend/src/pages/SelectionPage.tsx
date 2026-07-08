@@ -102,7 +102,7 @@ export default function SelectionPage({ mode }: SelectionPageProps) {
 
             {/* City card */}
             {districtId && (
-              <SelectionCard label="Select City">
+              <SelectionCard label="Select Area">
                 <DropdownSelect
                   options={cities.map(c => ({ value: c.id, label: c.name }))}
                   value={cityId}
