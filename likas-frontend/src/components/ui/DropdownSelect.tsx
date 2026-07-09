@@ -33,7 +33,7 @@ export default function DropdownSelect({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen(o => !o)}
-        className={`w-full flex items-center justify-between px-4 py-3 bg-[#F0F4F7] border rounded-xl text-sm font-inter transition-all ${
+        className={`w-full flex gap-3 items-justify justify-between px-5 py-1.5 bg-[#F0F4F7] border rounded-xl text-sm font-inter transition-all min-w-[120px] ${
           disabled
             ? 'opacity-50 cursor-not-allowed border-gray-200 text-gray-400'
             : 'border-gray-200 hover:border-[#1B75BC] cursor-pointer'
