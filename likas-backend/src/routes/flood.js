@@ -37,9 +37,22 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
   try {
     const newId = `fi-${Date.now()}`;
     const bId = req.params.barangayId;
-    const { date, time, street, depthInches, status, cause, priority } = req.body;
+    const { date, time, street, depthInches, status, cause, priority, force } = req.body;
     // Role is read exclusively from the verified JWT — cannot be spoofed by the client
     const loggedByRole = req.user.role;
+
+    if (!force) {
+      // Check for exact match (duplicate data)
+      const { rows: existing } = await pool.query(
+        `SELECT id FROM flood_incidents 
+         WHERE barangay_id = $1 AND street = $2 AND incident_date = $3 AND incident_time = $4`,
+        [bId, street, date, time]
+      );
+
+      if (existing.length > 0) {
+        return res.status(409).json({ error: 'DuplicateRecord', message: 'There is existing data for this location and time.' });
+      }
+    }
 
     await pool.query(
       `INSERT INTO flood_incidents 

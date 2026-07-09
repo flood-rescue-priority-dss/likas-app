@@ -124,10 +124,10 @@ export const floodService = {
   async getFloodRecordsByBarangay(barangayId: string): Promise<FloodIncident[]> {
     return fetchApi<FloodIncident[]>(`/flood/${barangayId}`);
   },
-  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole'>): Promise<FloodIncident> {
+  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole'>, force: boolean = false): Promise<FloodIncident> {
     return fetchApi<FloodIncident>(`/flood/${incident.barangayId}`, {
       method: 'POST',
-      body: JSON.stringify(incident)
+      body: JSON.stringify({ ...incident, force })
     });
   },
   async getRecurrenceHotspots(barangayId: string): Promise<RecurrenceHotspot[]> {

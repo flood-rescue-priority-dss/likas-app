@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle } from 'lucide-react';
 import Modal from '../ui/Modal';
 import DropdownSelect from '../ui/DropdownSelect';
 import InfoTooltip from '../ui/InfoTooltip';
@@ -31,8 +31,9 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [priority, setPriority] = useState<Priority>('Low');
+  const [showOverridePrompt, setShowOverridePrompt] = useState(false);
 
-  const handleSave = async () => {
+  const handleSave = async (forceOverride = false) => {
     if (!date || !time || !street || depth <= 0 || !cause) {
       setError('Please fill in all required fields (depth must be greater than 0).');
       return;
@@ -48,12 +49,16 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
         status: 'PATV',
         cause: cause as FloodCause,
         priority,
-      });
+      }, forceOverride);
       onSaved(incident);
       resetForm();
       onClose();
     } catch (e: any) {
-      setError(e.message || 'Failed to save incident.');
+      if (e.message === 'DuplicateRecord') {
+        setShowOverridePrompt(true);
+      } else {
+        setError(e.message || 'Failed to save incident.');
+      }
     } finally {
       setLoading(false);
     }
@@ -61,7 +66,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
   const resetForm = () => {
     setDate(''); setTime(''); setStreet(''); setDepth(0); setCause('');
-    setError(''); setPriority('Low');
+    setError(''); setPriority('Low'); setShowOverridePrompt(false);
   };
 
   const handleClose = () => { resetForm(); onClose(); };
@@ -152,21 +157,45 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
         )}
 
         {/* Footer */}
-        <div className="border-t border-gray-100 pt-4 flex gap-3 mt-2">
-          <button
-            onClick={handleClose}
-            className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-heading font-semibold text-sm rounded-xl transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex-1 py-3 bg-[#050A30] hover:bg-[#0a1545] disabled:opacity-60 text-white font-heading font-semibold text-sm rounded-xl transition-colors"
-          >
-            {loading ? 'Saving...' : 'Save Incident'}
-          </button>
-        </div>
+        {showOverridePrompt ? (
+          <div className="border-t border-gray-100 pt-4 mt-2">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 flex items-start gap-2">
+              <AlertTriangle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+              <p className="text-xs font-inter text-amber-800 font-medium">Do you wish to still add? There is existing data.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowOverridePrompt(false)}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-heading font-semibold text-sm rounded-xl transition-colors"
+              >
+                No, cancel
+              </button>
+              <button
+                onClick={() => handleSave(true)}
+                disabled={loading}
+                className="flex-1 py-3 bg-[#050A30] hover:bg-[#0a1545] disabled:opacity-60 text-white font-heading font-semibold text-sm rounded-xl transition-colors"
+              >
+                {loading ? 'Saving...' : 'Yes, add anyway'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="border-t border-gray-100 pt-4 flex gap-3 mt-2">
+            <button
+              onClick={handleClose}
+              className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-heading font-semibold text-sm rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleSave(false)}
+              disabled={loading}
+              className="flex-1 py-3 bg-[#050A30] hover:bg-[#0a1545] disabled:opacity-60 text-white font-heading font-semibold text-sm rounded-xl transition-colors"
+            >
+              {loading ? 'Saving...' : 'Save Incident'}
+            </button>
+          </div>
+        )}
       </div>
     </Modal>
   );
