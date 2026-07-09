@@ -154,9 +154,23 @@ export const populationService = {
 
 // ─── Street Registry ──────────────────────────────────────────────────────────
 
+export interface StreetFilters {
+  districtId?: string;
+  cityId?: string;
+  barangayId?: string;
+}
+
 export const streetService = {
   async getStreetRegistry(barangayId: string): Promise<StreetRegistryEntry[]> {
     return fetchApi<StreetRegistryEntry[]>(`/street/${barangayId}`);
+  },
+  async getStreetRegistryFiltered(filters: StreetFilters): Promise<StreetRegistryEntry[]> {
+    const params = new URLSearchParams();
+    if (filters.districtId) params.append('districtId', filters.districtId);
+    if (filters.cityId) params.append('cityId', filters.cityId);
+    if (filters.barangayId) params.append('barangayId', filters.barangayId);
+    const query = params.toString();
+    return fetchApi<StreetRegistryEntry[]>(`/street${query ? `?${query}` : ''}`);
   },
 };
 

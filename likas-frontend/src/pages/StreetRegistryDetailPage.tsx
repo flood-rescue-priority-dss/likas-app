@@ -1,41 +1,106 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Map, TrendingUp, Shield, Pencil } from 'lucide-react';
+import { Map, TrendingUp, Shield } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import MapPreview from '../components/ui/MapPreview';
+import SearchInput from '../components/ui/SearchInput';
+import DropdownSelect from '../components/ui/DropdownSelect';
 import { streetService, geoService } from '../services';
-import type { StreetRegistryEntry, Barangay } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import type { StreetRegistryEntry, District, City, Barangay } from '../types';
 
 
 export default function StreetRegistryDetailPage() {
-  const { barangayId } = useParams<{ barangayId: string }>();
-  const [barangay, setBarangay] = useState<Barangay | null>(null);
+  const { barangayId: routeBarangayId } = useParams<{ barangayId: string }>();
+  const { user } = useAuth();
+  const isBarangay = user?.role === 'barangay';
+
+  // ── Geography filter state ────────────────────────────────────────────────
+  const [districts, setDistricts]   = useState<District[]>([]);
+  const [cities,    setCities]      = useState<City[]>([]);
+  const [barangays, setBarangays]   = useState<Barangay[]>([]);
+
+  const [districtId, setDistrictId] = useState<string>('ALL');
+  const [cityId,     setCityId]     = useState<string>('ALL');
+  const [barangayId, setBarangayId] = useState<string>(routeBarangayId ?? 'ALL');
+
+  // ── Data state ────────────────────────────────────────────────────────────
   const [streets, setStreets] = useState<StreetRegistryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStreet, setSelectedStreet] = useState<StreetRegistryEntry | null>(null);
-  const [search, setSearch] = useState('');
+  const [tableSearch, setTableSearch] = useState('');
+
+  // ── Load geography dropdowns on mount (admin only) ────────────────────────
+  useEffect(() => {
+    if (isBarangay) return;
+    geoService.getDistricts().then(setDistricts);
+  }, [isBarangay]);
+
+  // ── Barangay-role users: auto-scope to their own barangay ─────────────────
+  const [myBarangayName, setMyBarangayName] = useState<string>('');
+  useEffect(() => {
+    if (!isBarangay || routeBarangayId) return;
+    const myId = (user as any)?.barangayId ?? user?.id;
+    if (myId) setBarangayId(myId);
+  }, [isBarangay, routeBarangayId, user]);
 
   useEffect(() => {
-    if (!barangayId) return;
-    setLoading(true);
-    Promise.all([
-      geoService.getBarangayById(barangayId),
-      streetService.getStreetRegistry(barangayId),
-    ]).then(([brgy, strs]) => {
-      setBarangay(brgy ?? null);
-      setStreets(strs);
-      setSelectedStreet(null); // Don't pre-select, wait for user click
-      setLoading(false);
-    });
-  }, [barangayId]);
+    if (!isBarangay || !barangayId || barangayId === 'ALL') return;
+    geoService.getBarangayById(barangayId)
+      .then(b => setMyBarangayName(b?.name ?? ''))
+      .catch(() => setMyBarangayName(''));
+  }, [isBarangay, barangayId]);
 
-  const filteredStreets = streets.filter(s =>
-    s.streetName.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleDistrictChange = async (id: string) => {
+    setDistrictId(id);
+    setCityId('ALL');
+    setBarangayId('ALL');
+    setCities([]);
+    setBarangays([]);
+    if (id && id !== 'ALL') {
+      const cs = await geoService.getCitiesByDistrict(id);
+      setCities(cs);
+    }
+  };
+
+  const handleCityChange = async (id: string) => {
+    setCityId(id);
+    setBarangayId('ALL');
+    setBarangays([]);
+    if (id && id !== 'ALL') {
+      const bs = await geoService.getBarangaysByCity(id);
+      setBarangays(bs);
+    }
+  };
+
+  // ── Fetch street registry whenever filters change ─────────────────────────
+  useEffect(() => {
+    setLoading(true);
+    const filters: any = {};
+    if (districtId !== 'ALL') filters.districtId = districtId;
+    if (cityId !== 'ALL') filters.cityId = cityId;
+    if (barangayId !== 'ALL') filters.barangayId = barangayId;
+
+    streetService.getStreetRegistryFiltered(filters)
+      .then(strs => {
+        setStreets(strs);
+        setSelectedStreet(null);
+        setLoading(false);
+      })
+      .catch(() => {
+        setStreets([]);
+        setLoading(false);
+      });
+  }, [districtId, cityId, barangayId]);
+
+  // ── Client-side table search filter ──────────────────────────────────────
+  const filteredStreets = useMemo(() => streets.filter(s =>
+    !tableSearch || s.streetName.toLowerCase().includes(tableSearch.toLowerCase())
+  ), [streets, tableSearch]);
 
   const avgPriority = streets.length
     ? Math.round(streets.reduce((s, st) => s + st.priorityScore, 0) / streets.length)
@@ -71,10 +136,33 @@ export default function StreetRegistryDetailPage() {
     )},
   ];
 
-  const brgyName = barangay?.name ?? barangayId ?? '';
-  const mapCenter: [number, number] = barangay
-    ? [barangay.lat, barangay.lng]
-    : [14.5931, 120.9748];
+  // ── Resolved label for breadcrumb / card subtitle ─────────────────────────
+  const selectedBarangay = barangays.find(b => b.id === barangayId);
+  const selectedCity     = cities.find(c => c.id === cityId);
+  const selectedDistrict = districts.find(d => d.id === districtId);
+  const scopeLabel = isBarangay
+    ? (myBarangayName || barangayId)
+    : (selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name ?? 'All Barangays');
+
+  // ── Dropdown options with ALL fallback ────────────────────────────────────
+  const districtOptions = [
+    { value: 'ALL', label: 'All Districts' },
+    ...districts.map(d => ({ value: d.id, label: d.name })),
+  ];
+  const cityOptions = [
+    { value: 'ALL', label: 'All Areas' },
+    ...cities.map(c => ({ value: c.id, label: c.name })),
+  ];
+  const barangayOptions = [
+    { value: 'ALL', label: 'All Barangays' },
+    ...barangays.map(b => ({ value: b.id, label: b.name })),
+  ];
+
+  // ── Map logic ──────────────────────────────────────────────────────────────
+  const mapCenter: [number, number] = selectedStreet
+    ? [selectedStreet.lat, selectedStreet.lng]
+    : (selectedBarangay ? [selectedBarangay.lat, selectedBarangay.lng] : [14.5931, 120.9748]);
+  
   const markerPos: [number, number] | undefined = selectedStreet
     ? [selectedStreet.lat, selectedStreet.lng]
     : undefined;
@@ -85,16 +173,10 @@ export default function StreetRegistryDetailPage() {
         <PageHeader
           title="STREET REGISTRY"
           titleUppercase
-          breadcrumbs={[
-            { label: 'District 5', muted: true },
-            { label: 'Port Area', muted: true },
-            { label: brgyName },
-          ]}
-          search={{ value: search, onChange: setSearch, placeholder: 'Search' }}
         />
 
         {/* Metric cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <MetricCard label="Total Streets" value={loading ? '—' : streets.length}
             icon={<Map size={14} className="text-[#1B75BC]" />} iconBg="bg-blue-50" />
           <MetricCard label="Avg. Priority Score" value={loading ? '—' : avgPriority}
@@ -105,6 +187,72 @@ export default function StreetRegistryDetailPage() {
             accent="text-[#C62828]"
             icon={<TrendingUp size={14} className="text-[#C62828]" />} iconBg="bg-red-50" />
         </div>
+
+        {/* ── Unified filter bar ──────────────────────────────────────────── */}
+        {!isBarangay && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 mb-6">
+            <div className="flex flex-wrap items-center gap-5">
+              {/* Label */}
+              <span className="text-sm font-inter font-medium text-gray-800 uppercase whitespace-nowrap">
+                Display By:
+              </span>
+
+              {/* Divider */}
+              <div className="w-px h-5 bg-gray-200" />
+
+              {/* District */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">District</label>
+                <DropdownSelect
+                  options={districtOptions}
+                  value={districtId}
+                  onChange={handleDistrictChange}
+                  placeholder="All Districts"
+                  className="w-40"
+                />
+              </div>
+
+              {/* Area / City */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">Area</label>
+                <DropdownSelect
+                  options={cityOptions}
+                  value={cityId}
+                  onChange={handleCityChange}
+                  placeholder="All Areas"
+                  disabled={districtId === 'ALL'}
+                  className="w-40"
+                />
+              </div>
+
+              {/* Barangay */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">Barangay</label>
+                <DropdownSelect
+                  options={barangayOptions}
+                  value={barangayId}
+                  onChange={setBarangayId}
+                  placeholder="All Barangays"
+                  disabled={cityId === 'ALL'}
+                  className="w-42"
+                />
+              </div>
+
+              {/* Clear */}
+              {(districtId !== 'ALL' || cityId !== 'ALL' || barangayId !== 'ALL') && (
+                <button
+                  onClick={() => {
+                    setDistrictId('ALL'); setCityId('ALL'); setBarangayId('ALL');
+                    setCities([]); setBarangays([]);
+                  }}
+                  className="text-xs font-inter text-[#1B75BC] hover:underline whitespace-nowrap"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Selected street indicator */}
         {selectedStreet && (
@@ -120,51 +268,82 @@ export default function StreetRegistryDetailPage() {
           </div>
         )}
 
-        {/* Map */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-heading font-semibold text-gray-800 text-sm">
-              {selectedStreet ? selectedStreet.streetName : brgyName} — Map
-            </h2>
-            <span className="hidden sm:inline text-xs font-inter text-gray-400">Click a location row to update pin</span>
+        {/* ── Main content ────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Streets table */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="px-4 sm:px-6 pt-6 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div>
+                  <h2 className="font-heading font-bold text-gray-900 text-base">All Locations</h2>
+                  <p className="text-xs font-inter text-gray-400 mt-0.5">
+                    {streets.length} available locations — {scopeLabel}
+                  </p>
+                </div>
+                <SearchInput
+                  value={tableSearch}
+                  onChange={setTableSearch}
+                  placeholder="Search streets…"
+                  className="w-full sm:w-48 flex-shrink-0"
+                />
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <DataTable
+                columns={columns}
+                data={filteredStreets}
+                keyExtractor={r => r.id}
+                loading={loading}
+                onRowClick={row => {
+                  if (selectedStreet?.id === row.id) {
+                    setSelectedStreet(null);
+                  } else {
+                    setSelectedStreet(row);
+                  }
+                }}
+                selectedKey={selectedStreet?.id}
+                pageSize={8}
+              />
+            </div>
           </div>
-          {loading ? (
-            <div className="w-full bg-gray-100 animate-pulse rounded-xl" style={{ height: '360px' }} />
-          ) : (
-            <MapPreview
-              center={mapCenter}
-              zoom={selectedStreet ? 17 : 16}
-              markerPosition={markerPos}
-              markerLabel={selectedStreet ? selectedStreet.streetName : brgyName}
-              highlightBoundary={brgyName}
-              height="360px"
-            />
-          )}
-        </div>
 
-        {/* Streets table */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 pt-6 pb-4">
-            <h2 className="font-heading font-bold text-gray-900 text-base">All Locations</h2>
-            <p className="text-xs font-inter text-gray-400 mt-0.5">
-              {streets.length} available locations in {brgyName}
+          {/* Map */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Map size={16} className="text-gray-400" />
+              <h2 className="font-heading font-bold text-gray-900 text-base">Map Preview</h2>
+            </div>
+            <p className="text-xs font-inter text-gray-400 mb-4">
+              {selectedStreet ? selectedStreet.streetName : scopeLabel}
+            </p>
+            
+            {/* Selected street indicator */}
+            {selectedStreet && (
+              <div className="mb-4 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#C62828]" />
+                <span className="text-xs font-inter font-medium text-gray-700">
+                  {selectedStreet.streetName}
+                </span>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="w-full bg-gray-100 animate-pulse rounded-xl" style={{ height: '360px' }} />
+            ) : (
+              <MapPreview
+                center={mapCenter}
+                zoom={selectedStreet ? 17 : 15}
+                markerPosition={markerPos}
+                markerLabel={selectedStreet?.streetName ?? scopeLabel}
+                highlightBoundary={selectedBarangay?.name}
+                height="360px"
+              />
+            )}
+            
+            <p className="text-xs font-inter text-gray-400 text-center mt-3">
+              Click a location row to update pin
             </p>
           </div>
-          <DataTable
-            columns={columns}
-            data={filteredStreets}
-            keyExtractor={r => r.id}
-            loading={loading}
-            onRowClick={row => {
-              if (selectedStreet?.id === row.id) {
-                setSelectedStreet(null);
-              } else {
-                setSelectedStreet(row);
-              }
-            }}
-            selectedKey={selectedStreet?.id}
-            pageSize={8}
-          />
         </div>
       </div>
     </>
