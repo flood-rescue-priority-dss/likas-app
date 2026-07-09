@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, CloudRain, Users, Map, UserCircle,
-  LogOut, ListChecks, AlertTriangle
+  LogOut, ListChecks, AlertTriangle, UserCog
 } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,11 +30,12 @@ const navItems: NavItem[] = [
   { to: '/flood-records', icon: <CloudRain size={20} />, label: 'Flood Records' },
   { to: '/population', icon: <Users size={20} />, label: 'Population Vulnerability' },
   { to: '/street-registry', icon: <Map size={20} />, label: 'Street Registry' },
+  { to: '/accounts', icon: <UserCog size={20} />, label: 'Manage Accounts' },
   { to: '/account', icon: <UserCircle size={20} />, label: 'Account' },
 ];
 
 export default function Sidebar({ expanded, onToggle }: SidebarProps) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
@@ -112,7 +113,9 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
           }}
         />
 
-        {navItems.map((item) => {
+        {navItems
+          .filter(item => item.label !== 'Manage Accounts' || user?.role === 'admin')
+          .map((item) => {
           const dashboardActive = item.to === '/dashboard' && location.pathname.startsWith('/dashboard');
           const childRouteActive = dashboardActive && location.pathname !== '/dashboard';
 

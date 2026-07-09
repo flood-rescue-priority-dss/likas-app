@@ -11,6 +11,7 @@ const populationRoutes = require('./routes/population');
 const streetRoutes = require('./routes/street');
 const dashboardRoutes = require('./routes/dashboard');
 const priorityRoutes = require('./routes/priority');
+const accountsRoutes = require('./routes/accounts');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,6 +31,7 @@ app.use('/api/population', populationRoutes);
 app.use('/api/street', streetRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/priority', priorityRoutes);
+app.use('/api/accounts', accountsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

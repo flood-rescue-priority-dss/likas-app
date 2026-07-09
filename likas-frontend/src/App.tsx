@@ -10,6 +10,7 @@ import FloodRecordsDetailPage from './pages/FloodRecordsDetailPage';
 import PopulationVulnerabilityPage from './pages/PopulationVulnerabilityPage';
 import StreetRegistryDetailPage from './pages/StreetRegistryDetailPage';
 import AccountSettingsPage from './pages/AccountSettingsPage';
+import AccountManagementPage from './pages/AccountManagementPage';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -44,6 +45,7 @@ function AppRoutes() {
                 <Route path="street-registry" element={<SelectionPage key="street" mode="street" />} />
                 <Route path="street-registry/:barangayId" element={<StreetRegistryDetailPage />} />
                 <Route path="account" element={<AccountSettingsPage />} />
+                <Route path="accounts" element={<AccountManagementPage />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </AppShell>
