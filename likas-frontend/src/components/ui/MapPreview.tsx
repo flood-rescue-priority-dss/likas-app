@@ -240,7 +240,7 @@ export default function MapPreview({
     <div
       ref={mapRef}
       className={`rounded-2xl overflow-hidden border border-gray-100 ${className}`}
-      style={{ height }}
+      style={{ height, isolation: 'isolate' }}
     />
   );
 }

@@ -13,34 +13,56 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, breadcrumbs, search, action, titleUppercase }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-6">
-      <div className="min-w-0">
-        <h1 className={`text-2xl font-heading font-bold text-gray-900 leading-tight ${titleUppercase ? 'uppercase tracking-wide' : ''}`}>
-          {title}
-        </h1>
-        {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="flex items-center gap-1 mt-1 flex-wrap">
-            {breadcrumbs.map((crumb, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <span className="text-gray-400 text-sm">›</span>}
-                <span className={`text-sm font-inter ${crumb.muted ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {crumb.label}
-                </span>
-              </React.Fragment>
-            ))}
-          </nav>
-        )}
+    <div className="mb-6">
+      {/* Title row */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1
+            className={`text-xl md:text-2xl font-heading font-bold text-gray-900 leading-tight ${
+              titleUppercase ? 'uppercase tracking-wide' : ''
+            }`}
+          >
+            {title}
+          </h1>
+          {breadcrumbs && breadcrumbs.length > 0 && (
+            <nav className="flex items-center gap-1 mt-1 flex-wrap">
+              {breadcrumbs.map((crumb, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <span className="text-gray-400 text-sm">›</span>}
+                  <span className={`text-sm font-inter ${crumb.muted ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {crumb.label}
+                  </span>
+                </React.Fragment>
+              ))}
+            </nav>
+          )}
+        </div>
+
+        {/* Desktop: search + action on same row as title */}
+        <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+          {search && (
+            <SearchInput
+              value={search.value}
+              onChange={search.onChange}
+              placeholder={search.placeholder}
+              className="w-52"
+            />
+          )}
+          {action}
+        </div>
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0">
+
+      {/* Mobile: search + action stacked below title */}
+      <div className="sm:hidden flex flex-col gap-2 mt-3">
         {search && (
           <SearchInput
             value={search.value}
             onChange={search.onChange}
             placeholder={search.placeholder}
-            className="w-52"
+            className="w-full"
           />
         )}
-        {action}
+        {action && <div>{action}</div>}
       </div>
     </div>
   );

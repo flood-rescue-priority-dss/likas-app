@@ -28,12 +28,14 @@ export default function Modal({ open, onClose, title, size = 'md', children, hea
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className={`relative w-full ${SIZES[size]} bg-[#F8F9FC] rounded-3xl shadow-2xl overflow-hidden`}
+        className={`relative w-full ${SIZES[size]} bg-[#F8F9FC] shadow-2xl overflow-hidden
+          rounded-t-3xl sm:rounded-3xl
+          max-h-[90vh] overflow-y-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         {!hideHeader && (
@@ -50,7 +52,7 @@ export default function Modal({ open, onClose, title, size = 'md', children, hea
             </div>
           </div>
         )}
-        <div className="px-8 pb-8 pt-4">{children}</div>
+        <div className="px-6 sm:px-8 pb-8 pt-4">{children}</div>
       </div>
     </div>
   );

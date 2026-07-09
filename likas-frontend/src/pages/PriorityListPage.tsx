@@ -53,7 +53,7 @@ export default function PriorityListPage() {
   };
 
   return (
-    <div className="p-10">
+    <div className="p-4 sm:p-6 lg:p-10">
       <PageHeader
         title="PRIORITY LIST"
         titleUppercase

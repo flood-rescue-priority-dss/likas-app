@@ -78,6 +78,20 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: inherit;
 }
 
+/*
+ * Leaflet sets z-index values of 400–1000 on its internal panes and controls,
+ * which causes the map to render on top of the sidebar in the normal stacking
+ * context.  isolation:isolate is applied directly on the Leaflet container div
+ * (via inline style in MapPreview.tsx) so Leaflet's z-indexes are scoped inside
+ * each map instance and cannot escape above app chrome like the sidebar.
+ */
+
+/* Sidebar must always be above any Leaflet layer */
+.app-sidebar {
+  position: relative;
+  z-index: 100;
+}
+
 /* Priority badge base */
 .badge {
   display: inline-flex;

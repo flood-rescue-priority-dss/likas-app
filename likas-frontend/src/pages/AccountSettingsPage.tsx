@@ -18,13 +18,13 @@ function DetailRow({
   onLinkClick?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-      <span className="text-sm font-inter text-gray-500 w-40 flex-shrink-0">{label}</span>
-      <span className="flex-1 text-sm font-inter font-medium text-gray-800">{value}</span>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 border-b border-gray-50 last:border-0 gap-1 sm:gap-0">
+      <span className="text-sm font-inter text-gray-500 sm:w-40 flex-shrink-0">{label}</span>
+      <span className="flex-1 text-sm font-inter font-medium text-gray-800 break-all sm:break-normal">{value}</span>
       {link && (
         <button
           onClick={onLinkClick}
-          className="text-sm font-inter font-medium text-[#1B75BC] hover:underline ml-4 flex-shrink-0"
+          className="text-sm font-inter font-medium text-[#1B75BC] hover:underline sm:ml-4 flex-shrink-0 text-left sm:text-right"
         >
           Change
         </button>
@@ -58,19 +58,19 @@ export default function AccountSettingsPage() {
 
   return (
     <>
-      <div className="p-10 max-w-3xl">
+      <div className="p-4 sm:p-6 lg:p-10 max-w-3xl">
         <PageHeader title="ACCOUNT SETTINGS" titleUppercase />
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Card heading */}
-          <div className="px-8 pt-8 pb-4">
-            <h2 className="text-3xl font-heading font-black text-gray-900">{user.officeName}</h2>
+          <div className="px-6 sm:px-8 pt-6 sm:pt-8 pb-4">
+            <h2 className="text-2xl sm:text-3xl font-heading font-black text-gray-900 break-words">{user.officeName}</h2>
           </div>
 
-          <div className="mx-8 border-t border-gray-100" />
+          <div className="mx-6 sm:mx-8 border-t border-gray-100" />
 
           {/* Office Details */}
-          <div className="px-8 pt-6 pb-4">
+          <div className="px-6 sm:px-8 pt-6 pb-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-inter uppercase text-gray-400">Office details</p>
               <button
@@ -93,7 +93,7 @@ export default function AccountSettingsPage() {
             </div>
           </div>
 
-          <div className="mx-8 border-t border-gray-100" />
+          <div className="mx-6 sm:mx-8 border-t border-gray-100" />
 
           {/* Account Access */}
           <div className="px-8 pt-6 pb-8">
