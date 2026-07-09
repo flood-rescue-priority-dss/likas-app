@@ -4,6 +4,74 @@ const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// ── GET /flood — all records with optional filters (admin only) ──────────────
+router.get('/', verifyToken, async (req, res) => {
+  if (req.user.role === 'barangay') {
+    // Barangay users are scoped to their own data — redirect to their specific route
+    return res.redirect(`/api/flood/${req.user.id}`);
+  }
+
+  try {
+    const { districtId, cityId, barangayId, startDate, endDate } = req.query;
+
+    const conditions = [];
+    const params = [];
+
+    if (barangayId) {
+      params.push(barangayId);
+      conditions.push(`fi.barangay_id = $${params.length}`);
+    } else if (cityId) {
+      params.push(cityId);
+      conditions.push(`b.city_id = $${params.length}`);
+    } else if (districtId) {
+      params.push(districtId);
+      conditions.push(`c.district_id = $${params.length}`);
+    }
+
+    if (startDate) {
+      params.push(startDate);
+      conditions.push(`fi.incident_date >= $${params.length}`);
+    }
+    if (endDate) {
+      params.push(endDate);
+      conditions.push(`fi.incident_date <= $${params.length}`);
+    }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const query = `
+      SELECT
+        fi.id,
+        fi.barangay_id AS "barangayId",
+        fi.incident_date AS "date",
+        fi.incident_time AS "time",
+        fi.street,
+        fi.depth_inches AS "depthInches",
+        fi.status,
+        fi.cause,
+        fi.priority
+      FROM flood_incidents fi
+      JOIN barangays b ON fi.barangay_id = b.id
+      JOIN cities c ON b.city_id = c.id
+      ${whereClause}
+      ORDER BY fi.incident_date DESC, fi.incident_time DESC
+    `;
+
+    const { rows } = await pool.query(query, params);
+
+    const formatted = rows.map(r => ({
+      ...r,
+      date: new Date(r.date).toISOString().split('T')[0],
+      time: typeof r.time === 'string' ? r.time.substring(0, 5) : r.time,
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/:barangayId', verifyToken, async (req, res) => {
   if (req.user.role === 'barangay' && req.user.id !== req.params.barangayId) {
     return res.status(403).json({ error: 'Unauthorized to view other barangay data' });

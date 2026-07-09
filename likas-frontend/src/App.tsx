@@ -38,7 +38,7 @@ function AppRoutes() {
             <AppShell expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(prev => !prev)}>
               <Routes>
                 <Route path="dashboard/*" element={<DashboardPage />} />
-                <Route path="flood-records" element={<SelectionPage key="flood" mode="flood" />} />
+                <Route path="flood-records" element={<FloodRecordsDetailPage />} />
                 <Route path="flood-records/:barangayId" element={<FloodRecordsDetailPage />} />
                 <Route path="population" element={<PopulationVulnerabilityPage />} />
                 <Route path="street-registry" element={<SelectionPage key="street" mode="street" />} />
