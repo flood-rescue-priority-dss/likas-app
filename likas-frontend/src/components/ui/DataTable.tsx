@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
-  header: string;
+  header: React.ReactNode;
   render?: (row: T) => React.ReactNode;
   className?: string;
 }
@@ -41,7 +41,7 @@ export default function DataTable<T>({
               {columns.map(col => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider ${col.className ?? ''}`}
+                  className={`px-4 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap ${col.className ?? ''}`}
                 >
                   {col.header}
                 </th>
@@ -97,19 +97,29 @@ export default function DataTable<T>({
           >
             <ChevronLeft size={14} />
           </button>
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map(p => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-inter font-semibold transition-colors ${
-                p === page
-                  ? 'bg-[#050A30] text-white'
-                  : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+          {(() => {
+            const windowSize = 5;
+            const half = Math.floor(windowSize / 2);
+            let startPage = Math.max(1, page - half);
+            let endPage = startPage + windowSize - 1;
+            if (endPage > totalPages) {
+              endPage = totalPages;
+              startPage = Math.max(1, endPage - windowSize + 1);
+            }
+            return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(p => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-inter font-semibold transition-colors ${
+                  p === page
+                    ? 'bg-[#050A30] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {p}
+              </button>
+            ));
+          })()}
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
