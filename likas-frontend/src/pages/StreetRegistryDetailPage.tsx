@@ -81,7 +81,7 @@ export default function StreetRegistryDetailPage() {
 
   return (
     <>
-      <div className="p-10">
+      <div className="p-4 sm:p-6 lg:p-10">
         <PageHeader
           title="STREET REGISTRY"
           titleUppercase
@@ -126,7 +126,7 @@ export default function StreetRegistryDetailPage() {
             <h2 className="font-heading font-semibold text-gray-800 text-sm">
               {selectedStreet ? selectedStreet.streetName : brgyName} — Street Map
             </h2>
-            <span className="text-xs font-inter text-gray-400">Click a location row to update pin</span>
+            <span className="hidden sm:inline text-xs font-inter text-gray-400">Click a location row to update pin</span>
           </div>
           <MapPreview
             center={mapCenter}

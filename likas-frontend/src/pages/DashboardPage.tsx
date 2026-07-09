@@ -27,7 +27,7 @@ function DashboardHome() {
     n.toLocaleString();
 
   return (
-    <div className="p-10">
+    <div className="p-4 sm:p-6 lg:p-10">
       <PageHeader
         title="DASHBOARD"
         titleUppercase
@@ -86,14 +86,14 @@ function DashboardHome() {
           </div>
           {data ? (
             <div className="flex flex-col w-full pb-6 flex-1">
-              <div className="w-full mb-6">
-                <table className="w-full text-left border-collapse">
+              <div className="w-full mb-6 overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[400px]">
                   <thead>
                     <tr className="bg-[#f8fafc] border-y border-gray-100">
-                      <th className="py-4 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center w-20">Rank</th>
-                      <th className="py-4 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap w-32">Barangay</th>
-                      <th className="py-4 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap">Location</th>
-                      <th className="py-4 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center w-24">Level</th>
+                      <th className="py-4 px-4 sm:px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center w-16 sm:w-20">Rank</th>
+                      <th className="py-4 px-4 sm:px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap">Barangay</th>
+                      <th className="py-4 px-4 sm:px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap">Location</th>
+                      <th className="py-4 px-4 sm:px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center">Level</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -101,11 +101,11 @@ function DashboardHome() {
                       const barangayNum = s.barangay.replace(/Barangay /i, '');
                       return (
                         <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                          <td className="py-4 px-6 text-sm font-inter text-gray-700 text-center">{i + 1}</td>
-                          <td className="py-4 px-6 text-sm font-inter text-gray-700">{barangayNum}</td>
-                          <td className="py-4 px-6 text-sm font-inter text-gray-700">{s.street}</td>
-                          <td className="py-4 px-6 text-sm font-inter text-center">
-                            <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-[#fee2e2] text-[#ef4444] font-medium text-xs font-inter w-20">
+                          <td className="py-4 px-4 sm:px-6 text-sm font-inter text-gray-700 text-center">{i + 1}</td>
+                          <td className="py-4 px-4 sm:px-6 text-sm font-inter text-gray-700">{barangayNum}</td>
+                          <td className="py-4 px-4 sm:px-6 text-sm font-inter text-gray-700">{s.street}</td>
+                          <td className="py-4 px-4 sm:px-6 text-sm font-inter text-center">
+                            <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-[#fee2e2] text-[#ef4444] font-medium text-xs font-inter">
                               {s.level}
                             </span>
                           </td>

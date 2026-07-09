@@ -32,7 +32,6 @@ export default function UpdateStreetModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Re-populate fields whenever a different row is opened
   React.useEffect(() => {
     if (open) {
       setStreetName(initialData?.streetName ?? '');
@@ -48,10 +47,7 @@ export default function UpdateStreetModal({
   const nameLabel = isBarangay ? 'Barangay' : 'Street';
 
   const handleSave = async () => {
-    if (!streetName.trim()) {
-      setError(`${nameLabel} name is required.`);
-      return;
-    }
+    if (!streetName.trim()) { setError(`${nameLabel} name is required.`); return; }
     setSaving(true);
     setError('');
     try {
@@ -64,10 +60,8 @@ export default function UpdateStreetModal({
       };
       if (isBarangay) {
         data.population = Number(population) || 0;
-        // Map back to the barangay shape expected by handleSaved
         data.name = data.streetName;
       }
-      // Replace with real API call when backend is ready
       await new Promise(r => setTimeout(r, 500));
       onSaved({ ...data, id: streetId, barangayId });
       onClose();
@@ -82,24 +76,9 @@ export default function UpdateStreetModal({
 
   const title = mode === 'update' ? `Update ${nameLabel}` : `Add ${nameLabel} Record`;
 
-  // Build field list — insert Total Population after the name field for admin (barangay) view
   const fields = [
-    {
-      label: nameLabel,
-      value: streetName,
-      onChange: setStreetName,
-      placeholder: `Enter ${nameLabel.toLowerCase()} name`,
-      type: 'text',
-    },
-    ...(isBarangay
-      ? [{
-          label: 'Total Population',
-          value: population,
-          onChange: setPopulation,
-          placeholder: 'Enter total population',
-          type: 'number',
-        }]
-      : []),
+    { label: nameLabel, value: streetName, onChange: setStreetName, placeholder: `Enter ${nameLabel.toLowerCase()} name`, type: 'text' },
+    ...(isBarangay ? [{ label: 'Total Population', value: population, onChange: setPopulation, placeholder: 'Enter total population', type: 'number' }] : []),
     { label: 'PWD',      value: pwd,      onChange: setPwd,      placeholder: 'Enter total PWD',      type: 'number' },
     { label: 'Senior',   value: elderly,  onChange: setElderly,  placeholder: 'Enter total senior',   type: 'number' },
     { label: 'Children', value: children, onChange: setChildren, placeholder: 'Enter total children', type: 'number' },
@@ -119,20 +98,18 @@ export default function UpdateStreetModal({
         </button>
       </div>
 
-      {/* Fields */}
+      {/* Fields — stacked on mobile, label-input row on sm+ */}
       <div className="space-y-4">
         {fields.map(f => (
-          <div key={f.label} className="grid grid-cols-5 items-center gap-4">
-            <label className="col-span-2 text-sm font-inter font-medium text-gray-600">
-              {f.label}
-            </label>
+          <div key={f.label} className="flex flex-col sm:grid sm:grid-cols-5 sm:items-center gap-1 sm:gap-4">
+            <label className="text-sm font-inter font-medium text-gray-600 sm:col-span-2">{f.label}</label>
             <input
               type={f.type}
               value={f.value}
               onChange={e => f.onChange(e.target.value)}
               placeholder={f.placeholder}
               min={f.type === 'number' ? 0 : undefined}
-              className="col-span-3 px-4 py-3 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC] transition-colors"
+              className="w-full sm:col-span-3 px-4 py-3 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC] transition-colors"
             />
           </div>
         ))}

@@ -92,7 +92,7 @@ export default function FloodRecordsDetailPage() {
 
   return (
     <>
-      <div className="p-10">
+      <div className="p-4 sm:p-6 lg:p-10">
         <PageHeader
           title="FLOOD RECORDS"
           titleUppercase
@@ -106,7 +106,7 @@ export default function FloodRecordsDetailPage() {
             <button
               id="log-incident-btn"
               onClick={() => setLogOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#C62828] hover:bg-red-800 text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#C62828] hover:bg-red-800 text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm whitespace-nowrap"
             >
               <Plus size={16} />
               Log Incident
@@ -129,8 +129,8 @@ export default function FloodRecordsDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Incident Log */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-            <div className="px-6 pt-6 pb-4">
-              <div className="flex items-start justify-between gap-4">
+            <div className="px-4 sm:px-6 pt-6 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div>
                   <h2 className="font-heading font-bold text-gray-900 text-base">Incident Log</h2>
                   <p className="text-xs font-inter text-gray-400 mt-0.5">
@@ -141,44 +141,40 @@ export default function FloodRecordsDetailPage() {
                   value={tableSearch}
                   onChange={setTableSearch}
                   placeholder="Search Streets…"
-                  className="w-48"
+                  className="w-full sm:w-48 flex-shrink-0"
                 />
               </div>
               {/* Date filter */}
-              <div className="flex items-center gap-3 mt-4 flex-wrap">
+              <div className="flex flex-wrap items-center gap-2 mt-4">
                 <span className="text-xs font-inter text-gray-500">Time Interval:</span>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={e => setStartDate(e.target.value)}
-                      className="pl-3 pr-3 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
-                    />
-                  </div>
-                  <span className="text-xs text-gray-400">to</span>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={e => setEndDate(e.target.value)}
-                      className="pl-3 pr-3 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
-                    />
-                  </div>
-                  {(startDate || endDate) && (
-                    <button onClick={() => { setStartDate(''); setEndDate(''); }}
-                      className="text-xs font-inter text-[#1B75BC] hover:underline">Clear</button>
-                  )}
-                </div>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="pl-3 pr-3 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                />
+                <span className="text-xs text-gray-400">to</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="pl-3 pr-3 py-1.5 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                />
+                {(startDate || endDate) && (
+                  <button onClick={() => { setStartDate(''); setEndDate(''); }}
+                    className="text-xs font-inter text-[#1B75BC] hover:underline">Clear</button>
+                )}
               </div>
             </div>
-            <DataTable
-              columns={columns as any}
-              data={filteredIncidents}
-              keyExtractor={r => r.id}
-              loading={loading}
-              pageSize={8}
-            />
+            <div className="overflow-x-auto">
+              <DataTable
+                columns={columns as any}
+                data={filteredIncidents}
+                keyExtractor={r => r.id}
+                loading={loading}
+                pageSize={8}
+              />
+            </div>
           </div>
 
           {/* Recurrence Hotspots */}
@@ -203,25 +199,14 @@ export default function FloodRecordsDetailPage() {
                         {h.eventCount} {h.eventCount === 1 ? 'event' : 'events'}
                       </span>
                     </div>
-                    {/* Segmented bar */}
                     <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
-                      {h.segmentLow > 0 && (
-                        <div className="bg-emerald-400 rounded-full" style={{ flex: h.segmentLow }} />
-                      )}
-                      {h.segmentMedium > 0 && (
-                        <div className="bg-amber-400 rounded-full" style={{ flex: h.segmentMedium }} />
-                      )}
-                      {h.segmentHigh > 0 && (
-                        <div className="bg-red-400 rounded-full" style={{ flex: h.segmentHigh }} />
-                      )}
-                      {h.segmentVeryHigh > 0 && (
-                        <div className="bg-[#C62828] rounded-full" style={{ flex: h.segmentVeryHigh }} />
-                      )}
+                      {h.segmentLow > 0 && <div className="bg-emerald-400 rounded-full" style={{ flex: h.segmentLow }} />}
+                      {h.segmentMedium > 0 && <div className="bg-amber-400 rounded-full" style={{ flex: h.segmentMedium }} />}
+                      {h.segmentHigh > 0 && <div className="bg-red-400 rounded-full" style={{ flex: h.segmentHigh }} />}
+                      {h.segmentVeryHigh > 0 && <div className="bg-[#C62828] rounded-full" style={{ flex: h.segmentVeryHigh }} />}
                     </div>
                   </div>
                 ))}
-
-                {/* Legend */}
                 <div className="pt-3 border-t border-gray-50 flex flex-wrap gap-3">
                   {[
                     { color: 'bg-emerald-400', label: 'Low' },
