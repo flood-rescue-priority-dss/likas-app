@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CheckCircle2, Eye, EyeOff, X } from 'lucide-react';
 import ConfirmPasswordModal from './ConfirmPasswordModal';
+import { authService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 
 type Step = 'confirm' | 'form' | 'success';
 
@@ -10,25 +12,49 @@ interface ChangePasswordModalProps {
 }
 
 export default function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
+  const { logout } = useAuth();
   const [step, setStep] = useState<Step>('confirm');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [retypePassword, setRetypePassword] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [showRetype, setShowRetype] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   if (!open) return null;
 
   const resetAndClose = () => {
     setStep('confirm');
+    setCurrentPassword('');
     setNewPassword('');
     setRetypePassword('');
+    setFormError('');
     onClose();
   };
 
-  const handleSaveChanges = (e: React.FormEvent) => {
+  const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: validate newPassword === retypePassword, strength, etc.
-    setStep('success');
+    setFormError('');
+
+    if (newPassword.length < 8) {
+      setFormError('New password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== retypePassword) {
+      setFormError('Passwords do not match.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await authService.changePassword(currentPassword, newPassword);
+      setStep('success');
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Failed to change password.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -36,9 +62,10 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
       <ConfirmPasswordModal
         open={step === 'confirm'}
         onCancel={resetAndClose}
-        onConfirm={(password) => {
-          // TODO: verify old/current password against backend
-          console.log('Verifying password:', password);
+        onConfirm={async (password) => {
+          // Throws on incorrect password — ConfirmPasswordModal surfaces the error
+          await authService.verifyPassword(password);
+          setCurrentPassword(password);
           setStep('form');
         }}
       />
@@ -72,6 +99,10 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                   showToggle={showRetype}
                 />
 
+                {formError && (
+                  <p className="text-xs text-[#C62828] font-inter">{formError}</p>
+                )}
+
                 <div className="border-t border-gray-100 pt-5 flex justify-between">
                   <button
                     type="button"
@@ -82,9 +113,10 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-[#050A30] hover:bg-[#0a1545] text-white font-heading font-semibold text-sm rounded-xl transition-colors"
+                    disabled={saving}
+                    className="px-5 py-2.5 bg-[#050A30] hover:bg-[#0a1545] disabled:opacity-60 text-white font-heading font-semibold text-sm rounded-xl transition-colors"
                   >
-                    Save Changes
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </form>
@@ -99,10 +131,10 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                 Your password has been changed successfully. Please log in again with your new password.
               </p>
               <button
-                onClick={resetAndClose}
+                onClick={() => { resetAndClose(); logout(); }}
                 className="px-6 py-2.5 bg-[#050A30] hover:bg-[#0a1545] text-white font-heading font-semibold text-sm rounded-xl transition-colors"
               >
-                Submit
+                Log In Again
               </button>
             </div>
           )}

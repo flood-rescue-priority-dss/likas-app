@@ -49,7 +49,7 @@ export default function LoginPage() {
             style={{ backgroundImage: `url(${likasLogo})` }}>
             </div>
           </div>
-          <div className="text-left cursor-pointer">
+          <div className="text-left cursor-default">
             <h1 className="text-white font-heading font-bold text-5xl tracking-wide">LIKAS</h1>
             <p className="text-white font-inter font-medium text-base leading-relaxed max-w-[400px]">
               A Flood Vulnerability Decision Support System
@@ -76,7 +76,7 @@ export default function LoginPage() {
             <span className="font-heading font-bold text-[#050A30] text-2xl">LIKAS</span>
           </div>
 
-          <div className="cursor-pointer bg-white rounded-3xl shadow-sm border border-gray-100 p-10">
+          <div className="cursor-default bg-white rounded-3xl shadow-sm border border-gray-100 p-10">
             <div className="mb-8 flex flex-col items-center text-center">
               <h2 className="font-heading font-bold text-gray-900 text-2xl">Welcome Back</h2>
               <p className="text-sm font-inter text-gray-500 mt-1">Sign in with your registered account</p>

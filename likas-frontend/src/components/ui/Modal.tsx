@@ -38,7 +38,7 @@ export default function Modal({ open, onClose, title, size = 'md', children, hea
       >
         {!hideHeader && (
           <div className="flex items-center justify-between px-8 pt-7 pb-2">
-            <p className="text-xs font-inter text-gray-400 uppercase tracking-widest">{title}</p>
+            <p className="text-xs font-inter text-gray-400 uppercase">{title}</p>
             <div className="flex items-center gap-2">
               {headerRight}
               <button

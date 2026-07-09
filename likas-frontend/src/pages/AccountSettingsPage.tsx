@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import EditOfficeDetailsModal from '../components/modals/EditOfficeDetailsModal';
 import ChangePasswordModal from '../components/modals/ChangePasswordModal';
-import ChangeEmailModal from '../components/modals/ChangeEmailModal';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserAccount } from '../types';
 import { format } from 'date-fns';
@@ -38,7 +37,6 @@ export default function AccountSettingsPage() {
   const { user, updateUser } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const [pwModalOpen, setPwModalOpen] = useState(false);
-  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   if (!user) return null;
 
@@ -74,7 +72,7 @@ export default function AccountSettingsPage() {
           {/* Office Details */}
           <div className="px-8 pt-6 pb-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-inter text-gray-400 uppercase tracking-widest">Office details</p>
+              <p className="text-sm font-inter uppercase text-gray-400">Office details</p>
               <button
                 id="edit-details-btn"
                 onClick={() => setEditOpen(true)}
@@ -99,13 +97,11 @@ export default function AccountSettingsPage() {
 
           {/* Account Access */}
           <div className="px-8 pt-6 pb-8">
-            <p className="text-xs font-inter text-gray-400 uppercase tracking-widest mb-3">Account access</p>
+            <p className="text-sm font-inter uppercase text-gray-400 mb-3">Account access</p>
             <div>
               <DetailRow
                 label="Registered email"
                 value={user.registeredEmail}
-                link
-                onLinkClick={() => setEmailModalOpen(true)}
               />
               <DetailRow
                 label="Password"
@@ -130,11 +126,6 @@ export default function AccountSettingsPage() {
         onSaved={handleSaved}
       />
       <ChangePasswordModal open={pwModalOpen} onClose={() => setPwModalOpen(false)} />
-      <ChangeEmailModal
-        open={emailModalOpen}
-        onClose={() => setEmailModalOpen(false)}
-        currentEmail={user.registeredEmail}
-      />
     </>
   );
 }

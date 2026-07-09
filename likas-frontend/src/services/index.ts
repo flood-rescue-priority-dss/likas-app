@@ -47,16 +47,33 @@ export const authService = {
     return data.user;
   },
 
-  async verifyPassword(email: string, password: string): Promise<boolean> {
-    try {
-      await fetchApi<{ verified: boolean }>('/auth/verify-password', {
-        method: 'POST',
-        body: JSON.stringify({ password })
-      });
-      return true;
-    } catch (e) {
-      return false;
-    }
+  // Throws if password is incorrect (lets callers surface the error message)
+  async verifyPassword(password: string): Promise<void> {
+    await fetchApi<{ verified: boolean }>('/auth/verify-password', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await fetchApi<{ success: boolean }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
+  async requestEmailChange(newEmail: string): Promise<void> {
+    await fetchApi<{ success: boolean }>('/auth/request-email-change', {
+      method: 'POST',
+      body: JSON.stringify({ newEmail }),
+    });
+  },
+
+  async confirmEmailChange(code: string): Promise<{ newEmail: string }> {
+    return fetchApi<{ success: boolean; newEmail: string }>('/auth/confirm-email-change', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
   },
 
   async getCurrentUser(): Promise<UserAccount | null> {
