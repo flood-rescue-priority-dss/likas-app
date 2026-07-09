@@ -53,6 +53,7 @@ export interface FloodIncident {
   status: FloodStatus;
   cause: FloodCause;
   priority: Priority;
+  loggedByRole: UserRole;
 }
 
 export interface RecurrenceHotspot {

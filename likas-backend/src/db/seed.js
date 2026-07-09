@@ -71,9 +71,9 @@ async function seed() {
     for (const f of FLOOD_INCIDENTS) {
       await client.query(
         `INSERT INTO flood_incidents 
-         (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [f.id, f.barangayId, f.date, f.time, f.street, f.depthInches, f.status, f.cause, f.priority]
+         (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [f.id, f.barangayId, f.date, f.time, f.street, f.depthInches, f.status, f.cause, f.priority, f.loggedByRole || 'barangay']
       );
     }
     
