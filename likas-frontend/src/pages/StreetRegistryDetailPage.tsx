@@ -124,17 +124,22 @@ export default function StreetRegistryDetailPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-heading font-semibold text-gray-800 text-sm">
-              {selectedStreet ? selectedStreet.streetName : brgyName} — Street Map
+              {selectedStreet ? selectedStreet.streetName : brgyName} — Map
             </h2>
             <span className="text-xs font-inter text-gray-400">Click a location row to update pin</span>
           </div>
-          <MapPreview
-            center={mapCenter}
-            zoom={selectedStreet ? 17 : 16}
-            markerPosition={markerPos}
-            markerLabel={selectedStreet?.streetName}
-            height="280px"
-          />
+          {loading ? (
+            <div className="w-full bg-gray-100 animate-pulse rounded-xl" style={{ height: '360px' }} />
+          ) : (
+            <MapPreview
+              center={mapCenter}
+              zoom={selectedStreet ? 17 : 16}
+              markerPosition={markerPos}
+              markerLabel={selectedStreet ? selectedStreet.streetName : brgyName}
+              highlightBoundary={brgyName}
+              height="360px"
+            />
+          )}
         </div>
 
         {/* Streets table */}
@@ -150,7 +155,13 @@ export default function StreetRegistryDetailPage() {
             data={filteredStreets}
             keyExtractor={r => r.id}
             loading={loading}
-            onRowClick={row => setSelectedStreet(row)}
+            onRowClick={row => {
+              if (selectedStreet?.id === row.id) {
+                setSelectedStreet(null);
+              } else {
+                setSelectedStreet(row);
+              }
+            }}
             selectedKey={selectedStreet?.id}
             pageSize={8}
           />

@@ -33,7 +33,8 @@ router.get('/cities/:id/barangays', async (req, res) => {
       cityId: r.cityId,
       name: r.name,
       population: r.population,
-      coordinates: { lat: r.lat, lng: r.lng }
+      lat: r.lat,
+      lng: r.lng
     }));
     res.json(formattedRows);
   } catch (err) {
@@ -53,7 +54,8 @@ router.get('/barangays/:id', async (req, res) => {
       cityId: r.cityId,
       name: r.name,
       population: r.population,
-      coordinates: { lat: r.lat, lng: r.lng }
+      lat: r.lat,
+      lng: r.lng
     });
   } catch (err) {
     console.error(err);

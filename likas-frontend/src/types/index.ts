@@ -108,6 +108,7 @@ export interface StreetRegistryEntry {
 
 export interface PriorityItem {
   id: string;
+  barangayId?: string;
   streetName: string;
   barangay: string;
   priority: Priority;
@@ -119,20 +120,23 @@ export interface PriorityItem {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export interface DashboardSummary {
   totalPopulation: number;
   totalStreets: number;
   totalFloodRecords: number;
   highPriorityAreas: number;
-  populationDistribution: {
+  populationComparison: {
     label: string;
     count: number;
+    pwd: number;
+    senior: number;
+    children: number;
+    pregnant: number;
+    general: number;
     color: string;
   }[];
-  topStreets: {
-    barangay: string;
-    street: string;
-    level: Priority;
-  }[];
+  topStreets: PriorityItem[];
+  recentFloods: (FloodIncident & { barangayName: string })[];
 }

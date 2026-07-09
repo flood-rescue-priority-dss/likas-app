@@ -13,7 +13,8 @@ const CONFIG: Record<Priority, { bg: string; text: string; border: string }> = {
 };
 
 export default function PriorityBadge({ priority, size = 'md' }: PriorityBadgeProps) {
-  const { bg, text, border } = CONFIG[priority];
+  const config = CONFIG[priority] || { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300' };
+  const { bg, text, border } = config;
   return (
     <span
       className={`inline-flex items-center border font-semibold rounded-full font-inter ${

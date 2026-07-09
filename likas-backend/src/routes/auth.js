@@ -50,6 +50,7 @@ router.post('/login', async (req, res) => {
     res.json({ user: userWithoutHash, token });
   } catch (err) {
     console.error(err);
+    require('fs').writeFileSync('auth_error.log', err.stack || err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

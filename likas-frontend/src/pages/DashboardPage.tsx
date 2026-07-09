@@ -4,21 +4,30 @@ import MetricCard from '../components/ui/MetricCard';
 import PageHeader from '../components/ui/PageHeader';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import MapPreview from '../components/ui/MapPreview';
-import { Users, Map, CloudRain, AlertTriangle } from 'lucide-react';
+import { Users, Map, CloudRain, AlertTriangle, Clock } from 'lucide-react';
 import { dashboardService } from '../services';
 import type { DashboardSummary } from '../types';
 import PriorityListPage from './PriorityListPage';
+import PriorityCard from '../components/ui/PriorityCard';
 import {
-  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
+
+const MANILA_CENTER: [number, number] = [14.5995, 120.9842];
 
 function DashboardHome() {
   const [data, setData] = useState<DashboardSummary | null>(null);
+  const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    dashboardService.getDashboardSummary().then(setData);
+    dashboardService.getDashboardSummary()
+      .then(setData)
+      .catch(err => {
+        console.error('Failed to load dashboard:', err);
+        setError(true);
+      });
   }, []);
 
   const formatNum = (n: number) =>
@@ -69,113 +78,127 @@ function DashboardHome() {
           <h2 className="font-heading font-semibold text-gray-800 text-base">City of Manila, Philippines</h2>
         </div>
         <MapPreview
-          center={[14.5995, 120.9842]}
+          center={MANILA_CENTER}
           zoom={12}
-          markerPosition={[14.5995, 120.9842]}
+          markerPosition={MANILA_CENTER}
           markerLabel="City of Manila"
+          highlightBoundary="Manila"
           height="320px"
         />
       </div>
 
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Barangays */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col h-full">
-          <div className="p-6 pb-4">
-            <h2 className="font-heading font-semibold text-gray-800 text-base">Priority Ranking</h2>
-          </div>
-          {data ? (
-            <div className="flex flex-col w-full pb-6 flex-1">
-              <div className="w-full mb-6">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-[#f8fafc] border-y border-gray-100">
-                      <th className="py-4 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center w-20">Rank</th>
-                      <th className="py-4 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap w-32">Barangay</th>
-                      <th className="py-4 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap">Location</th>
-                      <th className="py-4 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center w-24">Level</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.topStreets.map((s, i) => {
-                      const barangayNum = s.barangay.replace(/Barangay /i, '');
-                      return (
-                        <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                          <td className="py-4 px-6 text-sm font-inter text-gray-700 text-center">{i + 1}</td>
-                          <td className="py-4 px-6 text-sm font-inter text-gray-700">{barangayNum}</td>
-                          <td className="py-4 px-6 text-sm font-inter text-gray-700">{s.street}</td>
-                          <td className="py-4 px-6 text-sm font-inter text-center">
-                            <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-[#fee2e2] text-[#ef4444] font-medium text-xs font-inter w-20">
-                              {s.level}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="w-full flex justify-center mt-auto pb-2">
-                <button onClick={() => navigate('/dashboard/priority')} className="text-[#2563eb] hover:text-blue-700 font-inter text-sm font-medium flex items-center gap-1 transition-colors cursor-pointer">
-                  View all <span className="text-lg leading-none">&rsaquo;</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-32">
-              <div className="spinner-dark" />
-            </div>
-          )}
+      {/* Middle row: Priority Cards (Full Width Horizontal Scroll) */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col mb-6">
+        <div className="p-6 pb-2 flex justify-between items-center">
+          <h2 className="font-heading font-semibold text-gray-800 text-base">Priority Ranking</h2>
+          <button onClick={() => navigate('/dashboard/priority')} className="text-[#2563eb] hover:text-blue-700 font-inter text-sm font-medium flex items-center gap-1 transition-colors cursor-pointer">
+            View all <span className="text-lg leading-none">&rsaquo;</span>
+          </button>
         </div>
+        {error ? (
+          <div className="flex items-center justify-center h-40 flex-col gap-2">
+            <AlertTriangle className="text-red-500" size={24} />
+            <span className="text-gray-500 font-inter text-sm">Failed to connect to server</span>
+          </div>
+        ) : data ? (
+          <div className="w-full pb-6 px-6">
+            <div className="flex overflow-x-auto gap-4 pb-2 snap-x custom-scrollbar">
+              {(data.topStreets || []).map((item) => (
+                <div key={item.id || item.streetName} className="w-[300px] min-w-[300px] snap-start">
+                  <PriorityCard item={item} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-40">
+            <div className="spinner-dark" />
+          </div>
+        )}
+      </div>
 
-        {/* Population Distribution Pie Chart */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center h-full">
-          <h2 className="font-heading font-semibold text-gray-800 text-base mb-4 w-full text-left">Population Distribution</h2>
-          {data ? (
-            <div className="flex flex-col w-full flex-1">
-              <div className="w-full mb-6">
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={[...data.populationDistribution].sort((a, b) => b.count - a.count)}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={75}
-                      outerRadius={120}
-                      paddingAngle={3}
-                      dataKey="count"
-                      nameKey="label"
-                      stroke="none"
-                    >
-                      {[...data.populationDistribution].sort((a, b) => b.count - a.count).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [String(value), String(name)]}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontFamily: 'Inter' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="w-full flex justify-center mt-auto pb-2 flex-wrap gap-x-4 gap-y-2">
-                {[...data.populationDistribution].sort((a, b) => b.count - a.count).map((item, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="font-inter text-[13px] font-medium" style={{ color: item.color }}>
-                      {item.label}
-                    </span>
+      {/* Bottom row: Chart & Timeline (Admin Only) */}
+      {data && data.populationComparison?.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center">
+              <h2 className="font-heading font-semibold text-gray-800 text-base mb-4 w-full text-left">Population per Barangay</h2>
+              {error ? (
+                <div className="flex items-center justify-center h-40 flex-col gap-2">
+                  <AlertTriangle className="text-red-500" size={24} />
+                  <span className="text-gray-500 font-inter text-sm">Failed to connect to server</span>
+                </div>
+              ) : data ? (
+                <div className="flex flex-col w-full flex-1">
+                  <div className="w-full mt-4">
+                    <ResponsiveContainer width="100%" height={320}>
+                        <BarChart data={data.populationComparison || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                          <Tooltip 
+                            shared={false}
+                            cursor={{ fill: '#f1f5f9' }}
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontFamily: 'Inter' }}
+                          />
+
+                          <Bar dataKey="general" stackId="a" fill="#8B5CF6" name="General Population" />
+                          <Bar dataKey="children" stackId="a" fill="#38BDF8" name="Children" />
+                          <Bar dataKey="senior" stackId="a" fill="#F97316" name="Senior" />
+                          <Bar dataKey="pwd" stackId="a" fill="#EAB308" name="PWD" />
+                          <Bar dataKey="pregnant" stackId="a" fill="#EC4899" name="Pregnant Women" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 px-2">
+                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#8B5CF6]" /><span className="font-inter text-[11px] text-gray-600">General Population</span></div>
+                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#38BDF8]" /><span className="font-inter text-[11px] text-gray-600">Children</span></div>
+                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#F97316]" /><span className="font-inter text-[11px] text-gray-600">Senior</span></div>
+                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EAB308]" /><span className="font-inter text-[11px] text-gray-600">PWD</span></div>
+                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EC4899]" /><span className="font-inter text-[11px] text-gray-600">Pregnant Women</span></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-40">
+                  <div className="spinner-dark" />
+                </div>
+              )}
+            </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col h-[420px]">
+            <h2 className="font-heading font-semibold text-gray-800 text-base mb-4 flex items-center gap-2">
+              <Clock size={18} className="text-[#1B75BC]" />
+              Recent Flood Reports
+            </h2>
+            {data.recentFloods && data.recentFloods.length > 0 ? (
+              <div className="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar pr-2">
+                {data.recentFloods.map(flood => (
+                  <div key={flood.id} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 flex flex-col gap-2 transition-colors hover:bg-white hover:border-gray-200">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-heading font-semibold text-gray-900 text-sm">{flood.street}</p>
+                        <p className="font-inter text-xs text-gray-500 mt-0.5">{flood.barangayName}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] text-gray-500 font-inter font-medium uppercase tracking-wider">Flood Level</span>
+                        <PriorityBadge priority={flood.priority} size="sm" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100/60">
+                      <span className="font-inter text-xs font-medium text-gray-600">{flood.cause}</span>
+                      <span className="font-inter text-xs text-gray-400">
+                        {new Date(flood.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {flood.time.substring(0, 5)}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-40">
-              <div className="spinner-dark" />
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-1 text-gray-400">
+                <span className="font-inter text-sm">No recent floods reported.</span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
