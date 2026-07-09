@@ -5,7 +5,6 @@ import AppShell from './components/layout/AppShell';
 
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
-import SelectionPage from './pages/SelectionPage';
 import FloodRecordsDetailPage from './pages/FloodRecordsDetailPage';
 import PopulationVulnerabilityPage from './pages/PopulationVulnerabilityPage';
 import StreetRegistryDetailPage from './pages/StreetRegistryDetailPage';
@@ -39,11 +38,9 @@ function AppRoutes() {
             <AppShell expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(prev => !prev)}>
               <Routes>
                 <Route path="dashboard/*" element={<DashboardPage />} />
-                <Route path="flood-records" element={<SelectionPage key="flood" mode="flood" />} />
-                <Route path="flood-records/:barangayId" element={<FloodRecordsDetailPage />} />
+                <Route path="flood-records" element={<FloodRecordsDetailPage />} />
                 <Route path="population" element={<PopulationVulnerabilityPage />} />
-                <Route path="street-registry" element={<SelectionPage key="street" mode="street" />} />
-                <Route path="street-registry/:barangayId" element={<StreetRegistryDetailPage />} />
+                <Route path="street-registry" element={<StreetRegistryDetailPage />} />
                 <Route path="account" element={<AccountSettingsPage />} />
                 <Route path="accounts" element={<AccountManagementPage />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
