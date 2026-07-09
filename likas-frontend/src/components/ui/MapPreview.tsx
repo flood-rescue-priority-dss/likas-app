@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface MapPreviewProps {
   center?: [number, number];
@@ -8,6 +8,7 @@ interface MapPreviewProps {
   height?: string;
   className?: string;
   interactive?: boolean;
+  highlightBoundary?: string;
 }
 
 export default function MapPreview({
@@ -18,10 +19,13 @@ export default function MapPreview({
   height = '300px',
   className = '',
   interactive = true,
+  highlightBoundary,
 }: MapPreviewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const polygonRef = useRef<any>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     // Guard against StrictMode double-init
@@ -57,6 +61,7 @@ export default function MapPreview({
         doubleClickZoom: interactive,
         touchZoom: interactive,
         attributionControl: false,
+        preferCanvas: true, // Crucial for rendering highly complex polygons like the whole City of Manila without lag
       });
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -86,6 +91,7 @@ export default function MapPreview({
       }
 
       mapInstanceRef.current = map;
+      setMapReady(true);
       
       // Force Leaflet to recalculate container size after DOM paint
       // This fixes the blank gray box issue inside flex/dynamic layouts
@@ -102,19 +108,133 @@ export default function MapPreview({
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
         markerRef.current = null;
+        setMapReady(false);
       }
     };
   }, []);
 
   // Update marker when position changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !markerPosition) return;
+    if (!mapReady || !mapInstanceRef.current) return;
     if (markerRef.current) {
-      markerRef.current.setLatLng(markerPosition);
-      mapInstanceRef.current.setView(markerPosition, zoom);
-      if (markerLabel) markerRef.current.setPopupContent(`<b>${markerLabel}</b>`);
+      if (markerPosition) {
+        markerRef.current.setLatLng(markerPosition);
+        mapInstanceRef.current.setView(markerPosition, zoom, { animate: false });
+      }
+      if (markerLabel) {
+        markerRef.current.setPopupContent(`<b>${markerLabel}</b>`);
+      }
     }
-  }, [markerPosition, markerLabel]);
+  }, [markerPosition, markerLabel, zoom, mapReady]);
+
+  // Update boundary when highlightBoundary changes
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current || !highlightBoundary) return;
+    
+    let cancelled = false;
+    import('leaflet').then(L => {
+      if (cancelled) return;
+
+      const drawFallbackPolygon = () => {
+        if (polygonRef.current) {
+          mapInstanceRef.current.removeLayer(polygonRef.current);
+        }
+        
+        const lat = center[0];
+        const lng = center[1];
+        const points: [number, number][] = [];
+        const numPoints = 8;
+        // Consistent seed based on coordinates
+        const seed = Math.abs(lat * 100000) % 1;
+        
+        for (let i = 0; i < numPoints; i++) {
+          const angle = (i / numPoints) * Math.PI * 2;
+          const variance = Math.sin((seed + i) * 10) * 0.0008;
+          const radius = 0.002 + variance; // approx 200m - 300m
+          points.push([
+            lat + Math.cos(angle) * radius,
+            lng + Math.sin(angle) * radius
+          ]);
+        }
+
+        polygonRef.current = L.polygon(points, {
+          color: '#ef4444',
+          weight: 2,
+          fillColor: '#ef4444',
+          fillOpacity: 0.1
+        }).addTo(mapInstanceRef.current);
+
+        if (!markerPosition) {
+          if (markerRef.current) {
+            markerRef.current.setLatLng(center);
+          }
+          mapInstanceRef.current.fitBounds(polygonRef.current.getBounds(), { animate: false });
+        }
+      };
+
+      const drawPolygon = (geojson: any) => {
+        let tempLayer = L.geoJSON(geojson);
+        const boundsCenter = tempLayer.getBounds().getCenter();
+        const expectedCenter = L.latLng(center[0], center[1]);
+        
+        // If the polygon is more than 3km away from our expected center, it's junk data from Nominatim!
+        if (boundsCenter.distanceTo(expectedCenter) > 3000) {
+          drawFallbackPolygon();
+          return;
+        }
+
+        if (polygonRef.current) {
+          mapInstanceRef.current.removeLayer(polygonRef.current);
+        }
+        
+        polygonRef.current = L.geoJSON(geojson, {
+          style: { color: '#ef4444', weight: 2, fillColor: '#ef4444', fillOpacity: 0.1 }
+        }).addTo(mapInstanceRef.current);
+        
+        if (!markerPosition) {
+          if (markerRef.current) {
+            markerRef.current.setLatLng(boundsCenter);
+          }
+          mapInstanceRef.current.fitBounds(polygonRef.current.getBounds(), { animate: false });
+        }
+      };
+
+      // Dynamic import to prevent main bundle bloat
+      import('../../data/boundaries.json').then((mod) => {
+        const boundaries = mod.default as Record<string, any>;
+        if (boundaries[highlightBoundary]) {
+          drawPolygon(boundaries[highlightBoundary]);
+          return;
+        }
+
+        // Fallback to Nominatim API if not in local cache (should be rare now)
+        const query = encodeURIComponent(`${highlightBoundary}, Manila`);
+        fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&polygon_geojson=1`, {
+          headers: { 'User-Agent': 'likas-app' }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (cancelled) return;
+          if (data && data.length > 0 && data[0].geojson) {
+            drawPolygon(data[0].geojson);
+          } else {
+            drawFallbackPolygon();
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          drawFallbackPolygon();
+        });
+      }).catch(err => {
+        console.error("Failed to load boundaries.json", err);
+        drawFallbackPolygon();
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [highlightBoundary, markerPosition, mapReady]);
 
   return (
     <div

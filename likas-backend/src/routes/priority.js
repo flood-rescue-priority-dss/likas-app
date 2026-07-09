@@ -8,7 +8,7 @@ router.get('/', verifyToken, async (req, res) => {
   try {
     const filter = req.query.filter || 'All';
     let query = `
-      SELECT sr.id, b.name AS barangay, sr.street_name AS "streetName",
+      SELECT sr.id, b.id AS "barangayId", b.name AS barangay, sr.street_name AS "streetName",
              sr.priority_score AS "priorityScore", sr.vulnerability_score AS "vulnerabilityScore",
              sr.priority, sr.flood_count AS "floodCount", sr.last_updated AS "lastUpdated",
              sr.lat, sr.lng
@@ -44,7 +44,8 @@ router.get('/', verifyToken, async (req, res) => {
     res.json(formattedRows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    require('fs').writeFileSync('error.log', err.stack || err.message);
+    res.status(500).json({ error: 'Server error', details: err.message, stack: err.stack });
   }
 });
 

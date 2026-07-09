@@ -43,15 +43,15 @@ export default function PriorityCard({ item, onViewDetails }: PriorityCardProps)
       className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group flex flex-col h-full"
     >
       {/* Top bar */}
-      <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-        <PriorityBadge priority={item.priority} />
-        <span className={`text-xl font-heading font-bold ${SCORE_COLOR[item.priority]}`}>
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+        <PriorityBadge priority={item.priority} size="sm" />
+        <span className={`text-xl font-heading font-bold ${SCORE_COLOR[item.priority] || 'text-gray-900'}`}>
           {item.priorityScore}
         </span>
       </div>
 
       {/* Static Literal Map Thumbnail */}
-      <div className="mx-4 h-48 rounded-xl overflow-hidden relative bg-gray-50 flex items-center justify-center">
+      <div className="mx-3 h-28 rounded-xl overflow-hidden relative bg-gray-50 flex items-center justify-center">
         {isVisible ? (
           <MapPreview
             center={[item.lat, item.lng]}
@@ -75,11 +75,11 @@ export default function PriorityCard({ item, onViewDetails }: PriorityCardProps)
 
 
       {/* Details */}
-      <div className="px-5 py-4">
+      <div className="px-4 py-3">
         <h3 className="font-heading font-semibold text-gray-900 text-sm mb-1 line-clamp-1">
           {item.streetName}
         </h3>
-        <p className="text-xs font-inter text-gray-500 mb-3">{item.barangay}</p>
+        <p className="text-xs font-inter text-gray-500 mb-2">{item.barangay}</p>
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
