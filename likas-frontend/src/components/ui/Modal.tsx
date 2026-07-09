@@ -28,14 +28,12 @@ export default function Modal({ open, onClose, title, size = 'md', children, hea
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fadeIn"
       style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className={`relative w-full ${SIZES[size]} bg-[#F8F9FC] shadow-2xl overflow-hidden
-          rounded-t-3xl sm:rounded-3xl
-          max-h-[90vh] overflow-y-auto`}
+        className={`relative w-full ${SIZES[size]} bg-[#F8F9FC] rounded-3xl shadow-2xl overflow-hidden animate-slideUp`}
         onClick={(e) => e.stopPropagation()}
       >
         {!hideHeader && (

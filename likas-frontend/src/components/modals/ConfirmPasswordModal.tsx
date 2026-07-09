@@ -38,8 +38,8 @@ export default function ConfirmPasswordModal({ open, onCancel, onConfirm }: Conf
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm p-8 text-center">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm p-8 text-center animate-slideUp">
         <div className="flex justify-center mb-5">
           <div className="w-16 h-16 rounded-full border-2 border-amber-400 flex items-center justify-center">
             <AlertTriangle size={28} className="text-amber-500" />

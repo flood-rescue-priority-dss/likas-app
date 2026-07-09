@@ -39,11 +39,11 @@ export default function ConfirmPasswordModal({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-fadeIn"
       style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8">
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 animate-slideUp">
         {/* Warning Icon */}
         <div className="flex justify-center mb-5">
           <div className="w-16 h-16 rounded-full border-2 border-amber-400 flex items-center justify-center">

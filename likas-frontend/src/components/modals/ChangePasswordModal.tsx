@@ -71,9 +71,9 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
       />
 
       {step !== 'confirm' && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fadeIn">
           {step === 'form' && (
-            <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl p-8">
+            <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl p-8 animate-slideUp">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-sm font-inter uppercase text-gray-400">Change Password</h3>
                 <button onClick={resetAndClose} className="text-gray-400 hover:text-gray-600">
@@ -124,7 +124,7 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
           )}
 
           {step === 'success' && (
-            <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm p-8 text-center">
+            <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm p-8 text-center animate-slideUp">
               <CheckCircle2 className="mx-auto mb-4 text-[#050A30]" size={40} strokeWidth={1.5} />
               <h3 className="font-heading font-bold text-xl text-gray-900 mb-2">Password Updated!</h3>
               <p className="text-sm font-inter text-gray-500 mb-6">

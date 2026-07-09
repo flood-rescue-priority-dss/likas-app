@@ -92,8 +92,7 @@ export default function EditOfficeDetailsModal({
   };
 
   const handleConfirm = async (password: string) => {
-    const ok = await authService.verifyPassword(account.registeredEmail, password);
-    if (!ok) throw new Error('Incorrect password. Please try again.');
+    await authService.verifyPassword(password); // throws on incorrect password
     setLoading(true);
     try {
       const updates: Partial<UserAccount> = {
@@ -122,8 +121,8 @@ export default function EditOfficeDetailsModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 sm:p-4">
-        <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-xl w-full sm:max-w-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fadeIn">
+        <div className="bg-white rounded-3xl shadow-xl w-full max-w-xl p-8 animate-slideUp">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-inter uppercase text-gray-400">Edit Office Details</h3>
             <div className="flex items-center gap-2">

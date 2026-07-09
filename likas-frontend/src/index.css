@@ -118,6 +118,19 @@ select {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@layer utilities {
+  .animate-fadeIn  { animation: fadeIn  0.2s ease-out; }
+  .animate-slideUp { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+}
 .spinner {
   border: 4px solid rgba(255,255,255,0.3);
   border-top-color: #ffffff;
