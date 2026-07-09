@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import EditOfficeDetailsModal from '../components/modals/EditOfficeDetailsModal';
 import ChangePasswordModal from '../components/modals/ChangePasswordModal';
-import ChangeEmailModal from '../components/modals/ChangeEmailModal';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserAccount } from '../types';
 import { format } from 'date-fns';
@@ -38,7 +37,6 @@ export default function AccountSettingsPage() {
   const { user, updateUser } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const [pwModalOpen, setPwModalOpen] = useState(false);
-  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   if (!user) return null;
 
@@ -104,8 +102,6 @@ export default function AccountSettingsPage() {
               <DetailRow
                 label="Registered email"
                 value={user.registeredEmail}
-                link
-                onLinkClick={() => setEmailModalOpen(true)}
               />
               <DetailRow
                 label="Password"
@@ -130,11 +126,6 @@ export default function AccountSettingsPage() {
         onSaved={handleSaved}
       />
       <ChangePasswordModal open={pwModalOpen} onClose={() => setPwModalOpen(false)} />
-      <ChangeEmailModal
-        open={emailModalOpen}
-        onClose={() => setEmailModalOpen(false)}
-        currentEmail={user.registeredEmail}
-      />
     </>
   );
 }
