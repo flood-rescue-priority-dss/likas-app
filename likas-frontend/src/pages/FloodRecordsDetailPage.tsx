@@ -203,65 +203,73 @@ export default function FloodRecordsDetailPage() {
         {/* ── Unified filter bar ──────────────────────────────────────────── */}
         {!isBarangay && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 mb-6">
-            <p className="text-xs font-inter font-medium text-gray-400 uppercase tracking-widest mb-3">
-              Display By
-            </p>
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-wrap items-center gap-5">
+              {/* Label */}
+              <span className="text-sm font-inter font-medium text-gray-800 uppercase  whitespace-nowrap">
+                Display By:
+              </span>
+
+              {/* Divider */}
+              <div className="w-px h-5 bg-gray-200" />
+
               {/* District */}
-              <div className="flex flex-col gap-1 min-w-[160px]">
-                <label className="text-xs font-inter text-gray-500">District</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">District</label>
                 <DropdownSelect
                   options={districtOptions}
                   value={districtId}
                   onChange={handleDistrictChange}
                   placeholder="All Districts"
+                  className="w-40"
                 />
               </div>
 
               {/* Area / City */}
-              <div className="flex flex-col gap-1 min-w-[160px]">
-                <label className="text-xs font-inter text-gray-500">Area</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">Area</label>
                 <DropdownSelect
                   options={cityOptions}
                   value={cityId}
                   onChange={handleCityChange}
                   placeholder="All Areas"
                   disabled={districtId === 'ALL'}
+                  className="w-40"
                 />
               </div>
 
               {/* Barangay */}
-              <div className="flex flex-col gap-1 min-w-[160px]">
-                <label className="text-xs font-inter text-gray-500">Barangay</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">Barangay</label>
                 <DropdownSelect
                   options={barangayOptions}
                   value={barangayId}
                   onChange={setBarangayId}
                   placeholder="All Barangays"
                   disabled={cityId === 'ALL'}
+                  className="w-42"
                 />
               </div>
 
               {/* Divider */}
-              <div className="hidden sm:block w-px h-8 bg-gray-200 self-end mb-1" />
+              <div className="w-px h-5 bg-gray-200" />
 
               {/* Date range */}
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-inter text-gray-500">From</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">From</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
-                  className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                  className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-inter text-gray-500">To</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">To</label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
-                  className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                  className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                 />
               </div>
 
@@ -273,7 +281,7 @@ export default function FloodRecordsDetailPage() {
                     setCities([]); setBarangays([]);
                     setStartDate(''); setEndDate('');
                   }}
-                  className="self-end mb-0.5 text-xs font-inter text-[#1B75BC] hover:underline whitespace-nowrap"
+                  className="text-xs font-inter text-[#1B75BC] hover:underline whitespace-nowrap"
                 >
                   Clear all
                 </button>
