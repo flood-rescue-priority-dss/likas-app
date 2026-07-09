@@ -124,7 +124,7 @@ export const floodService = {
   async getFloodRecordsByBarangay(barangayId: string): Promise<FloodIncident[]> {
     return fetchApi<FloodIncident[]>(`/flood/${barangayId}`);
   },
-  async createFloodIncident(incident: Omit<FloodIncident, 'id'>): Promise<FloodIncident> {
+  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole'>): Promise<FloodIncident> {
     return fetchApi<FloodIncident>(`/flood/${incident.barangayId}`, {
       method: 'POST',
       body: JSON.stringify(incident)

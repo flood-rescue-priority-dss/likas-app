@@ -13,7 +13,7 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT id, barangay_id AS "barangayId", incident_date AS "date", 
               incident_time AS "time", street, depth_inches AS "depthInches", 
-              status, cause, priority 
+              status, cause, priority, logged_by_role AS "loggedByRole"
        FROM flood_incidents 
        WHERE barangay_id = $1`,
       [req.params.barangayId]
@@ -38,15 +38,17 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
     const newId = `fi-${Date.now()}`;
     const bId = req.params.barangayId;
     const { date, time, street, depthInches, status, cause, priority } = req.body;
+    // Role is read exclusively from the verified JWT — cannot be spoofed by the client
+    const loggedByRole = req.user.role;
 
     await pool.query(
       `INSERT INTO flood_incidents 
-       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [newId, bId, date, time, street, depthInches, status, cause, priority]
+       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [newId, bId, date, time, street, depthInches, status, cause, priority, loggedByRole]
     );
 
-    res.status(201).json({ id: newId, barangayId: bId, ...req.body });
+    res.status(201).json({ id: newId, barangayId: bId, loggedByRole, ...req.body });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

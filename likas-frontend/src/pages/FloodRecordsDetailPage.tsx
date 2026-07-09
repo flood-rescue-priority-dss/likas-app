@@ -84,6 +84,11 @@ export default function FloodRecordsDetailPage() {
     { key: 'priority', header: 'Priority', render: (r: FloodIncident) => (
       <PriorityBadge priority={r.priority} size="sm" />
     )},
+    { key: 'loggedByRole', header: 'Role', render: (r: FloodIncident) => (
+      r.loggedByRole === 'admin'
+        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-blue-100 text-blue-700">MDRRMO</span>
+        : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">Barangay</span>
+    )},
   ];
 
   const districtName = 'District 5';
