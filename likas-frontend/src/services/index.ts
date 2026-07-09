@@ -120,7 +120,25 @@ export const geoService = {
 
 // ─── Flood Incidents ──────────────────────────────────────────────────────────
 
+export interface FloodFilters {
+  districtId?: string;
+  cityId?: string;
+  barangayId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export const floodService = {
+  async getFloodRecords(filters: FloodFilters = {}): Promise<FloodIncident[]> {
+    const params = new URLSearchParams();
+    if (filters.districtId && filters.districtId !== 'ALL') params.set('districtId', filters.districtId);
+    if (filters.cityId     && filters.cityId     !== 'ALL') params.set('cityId',     filters.cityId);
+    if (filters.barangayId && filters.barangayId !== 'ALL') params.set('barangayId', filters.barangayId);
+    if (filters.startDate) params.set('startDate', filters.startDate);
+    if (filters.endDate)   params.set('endDate',   filters.endDate);
+    const qs = params.toString();
+    return fetchApi<FloodIncident[]>(`/flood${qs ? `?${qs}` : ''}`);
+  },
   async getFloodRecordsByBarangay(barangayId: string): Promise<FloodIncident[]> {
     return fetchApi<FloodIncident[]>(`/flood/${barangayId}`);
   },
