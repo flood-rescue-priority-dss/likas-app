@@ -21,16 +21,31 @@ interface DataTableProps<T> {
   headerAction?: React.ReactNode;
 }
 
+const WINDOW = 5;
+
 export default function DataTable<T>({
   columns, data, keyExtractor, loading, emptyMessage = 'No records found.',
   onRowClick, selectedKey, pageSize = 10, className = '', headerAction
 }: DataTableProps<T>) {
   const [page, setPage] = React.useState(1);
+
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
   const start = (page - 1) * pageSize;
   const pageData = data.slice(start, start + pageSize);
 
+  // Reset to page 1 whenever the dataset changes.
   React.useEffect(() => { setPage(1); }, [data]);
+
+  const goToPage = (p: number) => setPage(Math.max(1, Math.min(totalPages, p)));
+
+  // Grouped window: pages 1–5 → window 1, pages 6–10 → window 2, etc.
+  // windowStart is always the first page of the current group.
+  const windowStart = Math.floor((page - 1) / WINDOW) * WINDOW + 1;
+  const windowEnd = Math.min(windowStart + WINDOW - 1, totalPages);
+  const pageButtons = Array.from(
+    { length: windowEnd - windowStart + 1 },
+    (_, i) => windowStart + i
+  );
 
   return (
     <div className={`flex flex-col min-h-0 ${className}`}>
@@ -90,38 +105,35 @@ export default function DataTable<T>({
           Showing {data.length === 0 ? 0 : start + 1} to {Math.min(start + pageSize, data.length)} of {data.length} records
         </p>
         <div className="flex items-center gap-1">
+          {/* Previous */}
           <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => goToPage(page - 1)}
             disabled={page === 1}
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft size={14} />
           </button>
-          {(() => {
-            const windowSize = 5;
-            const half = Math.floor(windowSize / 2);
-            let startPage = Math.max(1, page - half);
-            let endPage = startPage + windowSize - 1;
-            if (endPage > totalPages) {
-              endPage = totalPages;
-              startPage = Math.max(1, endPage - windowSize + 1);
-            }
-            return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(p => (
+
+          {/* Page number buttons — fade in/out smoothly when window shifts */}
+          <div className="flex items-center gap-1">
+            {pageButtons.map(p => (
               <button
                 key={p}
-                onClick={() => setPage(p)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-inter font-semibold transition-colors ${
+                onClick={() => goToPage(p)}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-inter font-semibold transition-all duration-200 ${
                   p === page
-                    ? 'bg-[#050A30] text-white'
+                    ? 'bg-[#050A30] text-white scale-105 shadow-sm'
                     : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 {p}
               </button>
-            ));
-          })()}
+            ))}
+          </div>
+
+          {/* Next */}
           <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => goToPage(page + 1)}
             disabled={page === totalPages}
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
