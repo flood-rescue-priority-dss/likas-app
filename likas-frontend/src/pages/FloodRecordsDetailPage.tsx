@@ -9,7 +9,6 @@ import SearchInput from '../components/ui/SearchInput';
 import DropdownSelect from '../components/ui/DropdownSelect';
 import LogIncidentModal from '../components/modals/LogIncidentModal';
 import { floodService, geoService } from '../services';
-import type { FloodFilters } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import type { FloodIncident, RecurrenceHotspot, District, City, Barangay } from '../types';
 
@@ -44,6 +43,24 @@ export default function FloodRecordsDetailPage() {
     geoService.getDistricts().then(setDistricts);
   }, [isBarangay]);
 
+  // ── Barangay-role users: auto-scope to their own barangay ─────────────────
+  // Barangay accounts don't hit this page with a :barangayId in the route,
+  // so we pull it from the signed-in user instead — otherwise barangayId is
+  // stuck on 'ALL' and hotspots (which require a specific barangay) never load.
+  const [myBarangayName, setMyBarangayName] = useState<string>('');
+  useEffect(() => {
+    if (!isBarangay || routeBarangayId) return;
+    const myId = (user as any)?.barangayId ?? user?.id;
+    if (myId) setBarangayId(myId);
+  }, [isBarangay, routeBarangayId, user]);
+
+  useEffect(() => {
+    if (!isBarangay || !barangayId || barangayId === 'ALL') return;
+    geoService.getBarangayById(barangayId)
+      .then(b => setMyBarangayName(b?.name ?? ''))
+      .catch(() => setMyBarangayName(''));
+  }, [isBarangay, barangayId]);
+
   const handleDistrictChange = async (id: string) => {
     setDistrictId(id);
     setCityId('ALL');
@@ -66,19 +83,54 @@ export default function FloodRecordsDetailPage() {
     }
   };
 
+  // ── Resolve which barangays are in scope given the current filters ───────
+  // Mirrors the same district → city → barangay traversal the dropdowns use
+  // (getCitiesByDistrict / getBarangaysByCity), since the backend has no
+  // single "get all flood records" endpoint — only GET /flood/:barangayId.
+  const resolveScopeBarangayIds = async (): Promise<string[]> => {
+    if (barangayId !== 'ALL') return [barangayId];
+
+    if (cityId !== 'ALL') {
+      const bs = barangays.length ? barangays : await geoService.getBarangaysByCity(cityId);
+      return bs.map(b => b.id);
+    }
+
+    if (districtId !== 'ALL') {
+      const cs = cities.length ? cities : await geoService.getCitiesByDistrict(districtId);
+      const barangayLists = await Promise.all(cs.map(c => geoService.getBarangaysByCity(c.id)));
+      return barangayLists.flat().map(b => b.id);
+    }
+
+    // Fully unfiltered — walk every district → city → barangay
+    const allDistricts = districts.length ? districts : await geoService.getDistricts();
+    const cityLists = await Promise.all(allDistricts.map(d => geoService.getCitiesByDistrict(d.id)));
+    const allCities = cityLists.flat();
+    const barangayLists = await Promise.all(allCities.map(c => geoService.getBarangaysByCity(c.id)));
+    return barangayLists.flat().map(b => b.id);
+  };
+
   // ── Fetch flood records whenever filters change ───────────────────────────
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const filters: FloodFilters = {
-      districtId: districtId !== 'ALL' ? districtId : undefined,
-      cityId:     cityId     !== 'ALL' ? cityId     : undefined,
-      barangayId: barangayId !== 'ALL' ? barangayId : undefined,
-      startDate:  startDate  || undefined,
-      endDate:    endDate    || undefined,
-    };
-    floodService.getFloodRecords(filters)
-      .then(data => { setIncidents(data); setLoading(false); })
-      .catch(() => { setIncidents([]); setLoading(false); });
+
+    (async () => {
+      try {
+        const ids = await resolveScopeBarangayIds();
+        const results = await Promise.all(
+          ids.map(id => floodService.getFloodRecordsByBarangay(id).catch(() => []))
+        );
+        const merged = results.flat().filter(i =>
+          (!startDate || i.date >= startDate) &&
+          (!endDate   || i.date <= endDate)
+        );
+        if (!cancelled) { setIncidents(merged); setLoading(false); }
+      } catch {
+        if (!cancelled) { setIncidents([]); setLoading(false); }
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [districtId, cityId, barangayId, startDate, endDate]);
 
   // Hotspots: only meaningful when a single barangay is selected
@@ -138,11 +190,9 @@ export default function FloodRecordsDetailPage() {
   const selectedBarangay = barangays.find(b => b.id === barangayId);
   const selectedCity     = cities.find(c => c.id === cityId);
   const selectedDistrict = districts.find(d => d.id === districtId);
-  const scopeLabel =
-    selectedBarangay?.name ??
-    selectedCity?.name ??
-    selectedDistrict?.name ??
-    'All Barangays';
+  const scopeLabel = isBarangay
+    ? (myBarangayName || barangayId)
+    : (selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name ?? 'All Barangays');
 
   // ── Dropdown options with ALL fallback ────────────────────────────────────
   const districtOptions = [
@@ -203,65 +253,73 @@ export default function FloodRecordsDetailPage() {
         {/* ── Unified filter bar ──────────────────────────────────────────── */}
         {!isBarangay && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 mb-6">
-            <p className="text-xs font-inter font-medium text-gray-400 uppercase tracking-widest mb-3">
-              Display By
-            </p>
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-wrap items-center gap-5">
+              {/* Label */}
+              <span className="text-sm font-inter font-medium text-gray-800 uppercase  whitespace-nowrap">
+                Display By:
+              </span>
+
+              {/* Divider */}
+              <div className="w-px h-5 bg-gray-200" />
+
               {/* District */}
-              <div className="flex flex-col gap-1 min-w-[160px]">
-                <label className="text-xs font-inter text-gray-500">District</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">District</label>
                 <DropdownSelect
                   options={districtOptions}
                   value={districtId}
                   onChange={handleDistrictChange}
                   placeholder="All Districts"
+                  className="w-40"
                 />
               </div>
 
               {/* Area / City */}
-              <div className="flex flex-col gap-1 min-w-[160px]">
-                <label className="text-xs font-inter text-gray-500">Area</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">Area</label>
                 <DropdownSelect
                   options={cityOptions}
                   value={cityId}
                   onChange={handleCityChange}
                   placeholder="All Areas"
                   disabled={districtId === 'ALL'}
+                  className="w-40"
                 />
               </div>
 
               {/* Barangay */}
-              <div className="flex flex-col gap-1 min-w-[160px]">
-                <label className="text-xs font-inter text-gray-500">Barangay</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">Barangay</label>
                 <DropdownSelect
                   options={barangayOptions}
                   value={barangayId}
                   onChange={setBarangayId}
                   placeholder="All Barangays"
                   disabled={cityId === 'ALL'}
+                  className="w-42"
                 />
               </div>
 
               {/* Divider */}
-              <div className="hidden sm:block w-px h-8 bg-gray-200 self-end mb-1" />
+              <div className="w-px h-5 bg-gray-200" />
 
               {/* Date range */}
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-inter text-gray-500">From</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">From</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
-                  className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                  className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-inter text-gray-500">To</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-inter text-gray-500 whitespace-nowrap">To</label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
-                  className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-lg bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                  className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                 />
               </div>
 
@@ -273,9 +331,41 @@ export default function FloodRecordsDetailPage() {
                     setCities([]); setBarangays([]);
                     setStartDate(''); setEndDate('');
                   }}
-                  className="self-end mb-0.5 text-xs font-inter text-[#1B75BC] hover:underline whitespace-nowrap"
+                  className="text-xs font-inter text-[#1B75BC] hover:underline whitespace-nowrap"
                 >
                   Clear all
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Time interval filter for barangay-role users (admins get date range in the bar above) */}
+        {isBarangay && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 mb-6">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm font-inter font-medium text-gray-800 uppercase whitespace-nowrap">
+                Time Interval:
+              </span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+              />
+              <span className="text-xs text-gray-400">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+              />
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => { setStartDate(''); setEndDate(''); }}
+                  className="text-xs font-inter text-[#1B75BC] hover:underline whitespace-nowrap"
+                >
+                  Clear
                 </button>
               )}
             </div>
@@ -371,7 +461,7 @@ export default function FloodRecordsDetailPage() {
       <LogIncidentModal
         open={logOpen}
         onClose={() => setLogOpen(false)}
-        barangayId={barangayId !== 'ALL' ? barangayId : (user?.id ?? '')}
+        barangayId={barangayId !== 'ALL' ? barangayId : ((user as any)?.barangayId ?? user?.id ?? '')}
         onSaved={handleIncidentSaved}
       />
     </>
