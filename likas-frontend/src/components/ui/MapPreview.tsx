@@ -116,16 +116,40 @@ export default function MapPreview({
   // Update marker when position changes
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
-    if (markerRef.current) {
-      if (markerPosition) {
+    if (markerPosition) {
+      if (!markerRef.current) {
+        // Red marker icon
+        const redIcon = (window as any).L.divIcon({
+          html: `<div style="
+            width: 24px; height: 24px;
+            background: #C62828;
+            border: 3px solid white;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            box-shadow: 0 2px 8px rgba(198,40,40,0.5);
+          "></div>`,
+          className: '',
+          iconSize: [24, 24],
+          iconAnchor: [12, 24],
+        });
+        markerRef.current = (window as any).L.marker(markerPosition, { icon: redIcon }).addTo(mapInstanceRef.current);
+      } else {
         markerRef.current.setLatLng(markerPosition);
-        mapInstanceRef.current.setView(markerPosition, zoom, { animate: false });
       }
+      mapInstanceRef.current.setView(markerPosition, zoom, { animate: false });
+      
       if (markerLabel) {
-        markerRef.current.setPopupContent(`<b>${markerLabel}</b>`);
+        markerRef.current.bindPopup(`<b>${markerLabel}</b>`);
       }
+    } else {
+      // If markerPosition is undefined, hide/remove the marker
+      if (markerRef.current) {
+        mapInstanceRef.current.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+      mapInstanceRef.current.setView(center, zoom, { animate: false });
     }
-  }, [markerPosition, markerLabel, zoom, mapReady]);
+  }, [markerPosition, markerLabel, zoom, mapReady, center]);
 
   // Update boundary when highlightBoundary changes
   useEffect(() => {
@@ -164,11 +188,8 @@ export default function MapPreview({
           fillOpacity: 0.1
         }).addTo(mapInstanceRef.current);
 
-        if (!markerPosition) {
-          if (markerRef.current) {
-            markerRef.current.setLatLng(center);
-          }
-          mapInstanceRef.current.fitBounds(polygonRef.current.getBounds(), { animate: false });
+        if (!markerPosition && polygonRef.current) {
+          mapInstanceRef.current.setView(center, zoom, { animate: false });
         }
       };
 
@@ -177,8 +198,8 @@ export default function MapPreview({
         const boundsCenter = tempLayer.getBounds().getCenter();
         const expectedCenter = L.latLng(center[0], center[1]);
         
-        // If the polygon is more than 3km away from our expected center, it's junk data from Nominatim!
-        if (isNominatim && boundsCenter.distanceTo(expectedCenter) > 3000) {
+        // If the polygon is more than 10km away from our expected center, it's junk data from Nominatim!
+        if (isNominatim && boundsCenter.distanceTo(expectedCenter) > 10000) {
           drawFallbackPolygon();
           return;
         }
@@ -191,10 +212,7 @@ export default function MapPreview({
           style: { color: '#ef4444', weight: 2, fillColor: '#ef4444', fillOpacity: 0.1 }
         }).addTo(mapInstanceRef.current);
         
-        if (!markerPosition) {
-          if (markerRef.current) {
-            markerRef.current.setLatLng(boundsCenter);
-          }
+        if (!markerPosition && polygonRef.current) {
           mapInstanceRef.current.fitBounds(polygonRef.current.getBounds(), { animate: false });
         }
       };
@@ -208,7 +226,20 @@ export default function MapPreview({
         }
 
         // Fallback to Nominatim API if not in local cache (should be rare now)
-        const query = encodeURIComponent(`${highlightBoundary}, Manila`);
+        let searchQuery = highlightBoundary;
+        if (searchQuery.includes('Tondo')) searchQuery = 'Tondo';
+        if (searchQuery.includes('District')) {
+          // Nominatim mistakenly maps "1 District, Manila" to Taguig. 
+          // For Manila Congressional Districts, we just fallback to the whole city.
+          searchQuery = 'Manila';
+        }
+        
+        let queryString = `${searchQuery}, Manila`;
+        if (searchQuery === 'Manila' || searchQuery === 'All Barangays') {
+          queryString = 'City of Manila, Philippines';
+        }
+
+        const query = encodeURIComponent(queryString);
         fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&polygon_geojson=1`, {
           headers: { 'User-Agent': 'likas-app' }
         })

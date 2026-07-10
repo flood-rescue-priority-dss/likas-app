@@ -163,7 +163,7 @@ router.get('/summary', verifyToken, async (req, res) => {
       // Recent Floods
       let recentQuery = `
         SELECT f.id, f.barangay_id AS "barangayId", b.name AS "barangayName", 
-               f.incident_date AS "date", f.incident_time AS "time", 
+               TO_CHAR(f.incident_date, 'YYYY-MM-DD') AS "date", TO_CHAR(f.incident_time, 'HH24:MI') AS "time", 
                f.street, f.depth_inches AS "depthInches", 
                f.status, f.cause, f.priority 
         FROM flood_incidents f

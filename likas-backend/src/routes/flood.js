@@ -28,8 +28,8 @@ router.get('/', verifyToken, async (req, res) => {
   
   try {
     let query = `
-      SELECT f.id, f.barangay_id AS "barangayId", f.incident_date AS "date", 
-             f.incident_time AS "time", f.street, f.depth_inches AS "depthInches", 
+      SELECT f.id, f.barangay_id AS "barangayId", TO_CHAR(f.incident_date, 'YYYY-MM-DD') AS "date", 
+             TO_CHAR(f.incident_time, 'HH24:MI') AS "time", f.street, f.depth_inches AS "depthInches", 
              f.status, f.cause, f.priority, f.logged_by_role AS "loggedByRole",
              f.approval_status AS "approvalStatus", b.name AS "barangayName"
       FROM flood_incidents f
@@ -71,11 +71,8 @@ router.get('/', verifyToken, async (req, res) => {
     
     const { rows } = await pool.query(query, params);
 
-    const formattedRows = rows.map(r => ({
-      ...r,
-      date: new Date(r.date).toISOString().split('T')[0],
-      time: typeof r.time === 'string' ? r.time.substring(0, 5) : r.time
-    }));
+    // Dates and times are now pre-formatted correctly by PostgreSQL
+    const formattedRows = rows;
 
     res.json(formattedRows);
   } catch (err) {
@@ -94,8 +91,8 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, barangay_id AS "barangayId", incident_date AS "date", 
-              incident_time AS "time", street, depth_inches AS "depthInches", 
+      `SELECT id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
+              TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
               status, cause, priority, logged_by_role AS "loggedByRole",
               approval_status AS "approvalStatus"
        FROM flood_incidents 
@@ -103,12 +100,8 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
       [actualBarangayId]
     );
 
-    // Ensure dates are formatted correctly for frontend
-    const formattedRows = rows.map(r => ({
-      ...r,
-      date: new Date(r.date).toISOString().split('T')[0],
-      time: typeof r.time === 'string' ? r.time.substring(0, 5) : r.time // Keep HH:MM
-    }));
+    // Dates and times are now pre-formatted correctly by PostgreSQL
+    const formattedRows = rows;
 
     res.json(formattedRows);
   } catch (err) {
@@ -223,8 +216,8 @@ router.put('/incident/:incidentId', verifyToken, async (req, res) => {
        SET incident_date = $1, incident_time = $2, street = $3, 
            depth_inches = $4, cause = $5, priority = $6
        WHERE id = $7
-       RETURNING id, barangay_id AS "barangayId", incident_date AS "date", 
-                 incident_time AS "time", street, depth_inches AS "depthInches", 
+       RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
+                 TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
                  status, cause, priority, logged_by_role AS "loggedByRole"`,
       [date, time, street, depthInches, cause, priority, incidentId]
     );
@@ -234,11 +227,7 @@ router.put('/incident/:incidentId', verifyToken, async (req, res) => {
     }
 
     const updated = rows[0];
-    res.json({
-      ...updated,
-      date: new Date(updated.date).toISOString().split('T')[0],
-      time: typeof updated.time === 'string' ? updated.time.substring(0, 5) : updated.time
-    });
+    res.json(updated);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -283,8 +272,8 @@ router.post('/incident/:incidentId/approve', verifyToken, async (req, res) => {
       `UPDATE flood_incidents 
        SET approval_status = 'Approved'
        WHERE id = $1
-       RETURNING id, barangay_id AS "barangayId", incident_date AS "date", 
-                 incident_time AS "time", street, depth_inches AS "depthInches", 
+       RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
+                 TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
                  status, cause, priority, logged_by_role AS "loggedByRole",
                  approval_status AS "approvalStatus"`,
       [incidentId]
@@ -295,11 +284,7 @@ router.post('/incident/:incidentId/approve', verifyToken, async (req, res) => {
     }
 
     const approved = rows[0];
-    res.json({
-      ...approved,
-      date: new Date(approved.date).toISOString().split('T')[0],
-      time: typeof approved.time === 'string' ? approved.time.substring(0, 5) : approved.time
-    });
+    res.json(approved);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -319,8 +304,8 @@ router.post('/incident/:incidentId/reject', verifyToken, async (req, res) => {
       `UPDATE flood_incidents 
        SET approval_status = 'Rejected'
        WHERE id = $1
-       RETURNING id, barangay_id AS "barangayId", incident_date AS "date", 
-                 incident_time AS "time", street, depth_inches AS "depthInches", 
+       RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
+                 TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
                  status, cause, priority, logged_by_role AS "loggedByRole",
                  approval_status AS "approvalStatus"`,
       [incidentId]
@@ -331,11 +316,7 @@ router.post('/incident/:incidentId/reject', verifyToken, async (req, res) => {
     }
 
     const rejected = rows[0];
-    res.json({
-      ...rejected,
-      date: new Date(rejected.date).toISOString().split('T')[0],
-      time: typeof rejected.time === 'string' ? rejected.time.substring(0, 5) : rejected.time
-    });
+    res.json(rejected);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
