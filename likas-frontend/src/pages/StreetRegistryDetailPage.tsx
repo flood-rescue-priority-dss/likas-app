@@ -40,8 +40,8 @@ export default function StreetRegistryDetailPage() {
     geoService.getDistricts().then(setDistricts);
   }, [isBarangay]);
 
-  // ── Barangay-role users: auto-scope to their own barangay ─────────────────
-  const [myBarangayName, setMyBarangayName] = useState<string>('');
+  // 🔒 Barangay-role users: auto-scope to their own barangay 🔒
+  const [myBarangayName, setMyBarangayName] = useState<string>((user as any)?.officeName || '');
   useEffect(() => {
     if (!isBarangay || routeBarangayId) return;
     const myId = (user as any)?.barangayId ?? user?.id;
@@ -49,11 +49,14 @@ export default function StreetRegistryDetailPage() {
   }, [isBarangay, routeBarangayId, user]);
 
   useEffect(() => {
-    if (!isBarangay || !barangayId || barangayId === 'ALL') return;
-    geoService.getBarangayById(barangayId)
-      .then(b => setMyBarangayName(b?.name ?? ''))
-      .catch(() => setMyBarangayName(''));
-  }, [isBarangay, barangayId]);
+    const myId = (user as any)?.barangayId ?? user?.id;
+    if (!isBarangay || !myId || myId === 'ALL') return;
+    geoService.getBarangayById(myId)
+      .then(b => {
+        if (b?.name) setMyBarangayName(b.name);
+      })
+      .catch(() => { /* Keep the initial officeName */ });
+  }, [isBarangay, routeBarangayId, user]);
 
   const handleDistrictChange = async (id: string) => {
     setDistrictId(id);

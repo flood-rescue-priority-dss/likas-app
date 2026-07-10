@@ -4,6 +4,8 @@ import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import SearchInput from '../components/ui/SearchInput';
 import PriorityBadge from '../components/ui/PriorityBadge';
+import DataTable from '../components/ui/DataTable';
+import type { Column } from '../components/ui/DataTable';
 import { floodService } from '../services';
 import type { FloodIncident } from '../types';
 
@@ -108,6 +110,92 @@ export default function IncidentLogManagementPage() {
     );
   };
 
+  const columns: Column<FloodIncident>[] = [
+    {
+      key: 'street',
+      header: 'Location',
+      sticky: true,
+      render: (incident) => (
+        <div>
+          <div className="text-sm font-semibold text-gray-800">{incident.street}</div>
+          {incident.barangayName && (
+            <div className="text-xs font-inter text-gray-400 mt-0.5">{incident.barangayName}</div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'barangayId',
+      header: 'Submitted By',
+      render: (incident) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">
+          Brgy. {incident.barangayId.replace('brgy-', '')}
+        </span>
+      )
+    },
+    {
+      key: 'date',
+      header: 'Date',
+      className: 'font-medium',
+    },
+    {
+      key: 'time',
+      header: 'Time',
+      className: 'font-medium',
+    },
+    {
+      key: 'depthInches',
+      header: 'Depth (in)',
+      className: 'text-gray-800 font-medium',
+    },
+    {
+      key: 'cause',
+      header: 'Cause',
+      render: (incident) => (
+        <span className="text-xs font-inter text-gray-600">{incident.cause}</span>
+      )
+    },
+    {
+      key: 'priority',
+      header: 'Priority',
+      render: (incident) => (
+        <PriorityBadge priority={incident.priority} size="sm" />
+      )
+    },
+    {
+      key: 'approvalStatus',
+      header: 'Status',
+      render: (incident) => getStatusBadge(incident.approvalStatus || 'Pending')
+    }
+  ];
+
+  if (activeTab === 'pending') {
+    columns.push({
+      key: 'actions',
+      header: 'Actions',
+      render: (incident) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleReject(incident.id)}
+            disabled={processingId === incident.id}
+            className="px-3 py-1.5 text-xs font-heading font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          >
+            <XCircle size={14} />
+            Reject
+          </button>
+          <button
+            onClick={() => handleApprove(incident.id)}
+            disabled={processingId === incident.id}
+            className="px-3 py-1.5 text-xs font-heading font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+          >
+            <CheckCircle size={14} />
+            Approve
+          </button>
+        </div>
+      )
+    });
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-10">
       <PageHeader
@@ -138,7 +226,7 @@ export default function IncidentLogManagementPage() {
         />
       </div>
 
-      {/* Tab Navigation */}
+      {/* Tab Navigation & Content Container */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="border-b border-gray-100 px-6 pt-4">
           <div className="flex gap-6">
@@ -190,116 +278,13 @@ export default function IncidentLogManagementPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-[#F0F4F7]">
-              <tr>
-                <th className="sticky left-0 z-10 bg-[#F0F4F7] px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                  Submitted By
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                  Time
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                  Depth (in)
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                  Cause
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                {activeTab === 'pending' && (
-                  <th className="px-6 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={activeTab === 'pending' ? 9 : 8} className="px-6 py-12 text-center">
-                    <div className="flex justify-center">
-                      <div className="spinner-dark" />
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredIncidents.length === 0 ? (
-                <tr>
-                  <td colSpan={activeTab === 'pending' ? 9 : 8} className="px-6 py-12 text-center text-sm font-inter text-gray-400">
-                    No incidents found
-                  </td>
-                </tr>
-              ) : (
-                filteredIncidents.map(incident => (
-                  <tr key={incident.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="sticky left-0 z-10 bg-white hover:bg-gray-50 px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-800">{incident.street}</div>
-                      {incident.barangayName && (
-                        <div className="text-xs font-inter text-gray-400 mt-0.5">{incident.barangayName}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">
-                        Brgy. {incident.barangayId.replace('brgy-', '')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-inter text-gray-600">
-                      {incident.date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-inter text-gray-600">
-                      {incident.time}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-inter text-gray-800 font-medium">
-                      {incident.depthInches}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-xs font-inter text-gray-600">{incident.cause}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <PriorityBadge priority={incident.priority} size="sm" />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(incident.approvalStatus || 'Pending')}
-                    </td>
-                    {activeTab === 'pending' && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleReject(incident.id)}
-                            disabled={processingId === incident.id}
-                            className="px-3 py-1.5 text-xs font-heading font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                          >
-                            <XCircle size={14} />
-                            Reject
-                          </button>
-                          <button
-                            onClick={() => handleApprove(incident.id)}
-                            disabled={processingId === incident.id}
-                            className="px-3 py-1.5 text-xs font-heading font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                          >
-                            <CheckCircle size={14} />
-                            Approve
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={filteredIncidents}
+          keyExtractor={(inc) => inc.id}
+          loading={loading}
+          emptyMessage="No incident logs found."
+        />
       </div>
     </div>
   );

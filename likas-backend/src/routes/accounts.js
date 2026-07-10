@@ -22,6 +22,33 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Validate an account before creation
+router.post('/validate', async (req, res) => {
+  const { office_name } = req.body;
+  if (!office_name) {
+    return res.status(400).json({ error: 'Barangay name is required' });
+  }
+
+  try {
+    // 1. Check if the barangay exists in the official dataset
+    const geoCheck = await pool.query('SELECT id FROM barangays WHERE LOWER(name) = LOWER($1)', [office_name]);
+    if (geoCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid barangay name. Please enter an official Manila barangay.' });
+    }
+
+    // 2. Check if an account for this barangay already exists
+    const accCheck = await pool.query('SELECT id FROM users WHERE LOWER(office_name) = LOWER($1) AND role = $2', [office_name, 'barangay']);
+    if (accCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'An account for this barangay already exists.' });
+    }
+
+    res.json({ success: true, message: 'Valid' });
+  } catch (err) {
+    console.error('Error validating account:', err);
+    res.status(500).json({ error: 'Server error validating account' });
+  }
+});
+
 // Create a new account
 router.post('/', async (req, res) => {
   const { office_name, office_reference_no, zone, city_municipality, email, password } = req.body;
@@ -33,9 +60,23 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
+    // Strict Validation: Check if the barangay exists in the official dataset
+    const geoCheck = await pool.query('SELECT id FROM barangays WHERE LOWER(name) = LOWER($1)', [office_name]);
+    if (geoCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid barangay name. Please enter an official Manila barangay.' });
+    }
+
+    // Strict Validation: Check if an account for this barangay already exists
+    const accCheck = await pool.query('SELECT id FROM users WHERE LOWER(office_name) = LOWER($1) AND role = $2 AND id != $3', [office_name, 'barangay', '']);
+    if (accCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'An account for this barangay already exists.' });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
-    const newId = uuidv4();
+    // Format ID exactly as brgy-{number}
+    const cleanName = office_name.replace(/^Barangay\s*/i, '').trim().toLowerCase().replace(/\s+/g, '-');
+    const newId = `brgy-${cleanName}`;
 
     const result = await pool.query(
       `INSERT INTO users (
@@ -110,6 +151,12 @@ router.put('/:id', async (req, res) => {
   const { office_name, office_reference_no, zone, city_municipality, email, status } = req.body;
 
   try {
+    // Strict Validation: Check if the barangay exists in the official dataset
+    const geoCheck = await pool.query('SELECT id FROM barangays WHERE LOWER(name) = LOWER($1)', [office_name]);
+    if (geoCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid barangay name. Please enter an official Manila barangay.' });
+    }
+
     const result = await pool.query(
       `UPDATE users 
        SET office_name = $1, office_reference_no = $2, zone = $3, city_municipality = $4, registered_email = $5, status = $6

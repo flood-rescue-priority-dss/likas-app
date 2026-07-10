@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Search, Plus, Edit, Archive, X, UsersRound, ChevronDown } from 'lucide-react';
+import { Users, UserCheck, UserX, Search, Plus, Edit, Archive, X, UsersRound, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { authService } from '../services';
 import ConfirmPasswordModal from '../components/modals/ConfirmPasswordModal';
+import Modal from '../components/ui/Modal';
 import { format } from 'date-fns';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -36,10 +37,18 @@ export default function AccountManagementPage() {
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [isNoChangesModalOpen, setIsNoChangesModalOpen] = useState(false);
 
+  // Validation Error Modal
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   // Archive State
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isArchiveConfirmModalOpen, setIsArchiveConfirmModalOpen] = useState(false);
   const [archivingAccountId, setArchivingAccountId] = useState<string | null>(null);
+
+  // Pagination State
+  const [entries, setEntries] = useState<number>(10);
+  const [page, setPage] = useState(1);
 
   // Archived Details State
   const [isArchivedDetailsModalOpen, setIsArchivedDetailsModalOpen] = useState(false);
@@ -87,11 +96,30 @@ export default function AccountManagementPage() {
     
     setIsSubmitting(true);
     try {
+      // Validate Barangay Name
+      const valResponse = await fetch(`${API_BASE}/accounts/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('likas_token')}`
+        },
+        body: JSON.stringify({ office_name: formData.office_name })
+      });
+
+      if (!valResponse.ok) {
+        const valData = await valResponse.json();
+        setErrorMessage(valData.error || 'Invalid barangay. Please ensure the name is correct and the account does not already exist.');
+        setErrorModalOpen(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       // Verify admin password
       try {
         await authService.verifyPassword(formData.password);
       } catch (err) {
-        alert('Incorrect admin password. Please try again.');
+        setErrorMessage('Incorrect admin password. Please try again.');
+        setErrorModalOpen(true);
         setIsSubmitting(false);
         return;
       }
@@ -99,7 +127,7 @@ export default function AccountManagementPage() {
       // Generate credentials
       const refNum = formData.office_reference_no.replace(/^(MLA-)?BRGY-/i, '');
       setGeneratedCreds({
-        email: `manila.brgy${refNum}@gov.ph`.toLowerCase(),
+        email: `manila.brgy-${refNum}@gov.ph`.toLowerCase(),
         password: Math.random().toString(36).slice(-8).toUpperCase()
       });
       
@@ -189,7 +217,35 @@ export default function AccountManagementPage() {
       return;
     }
     
-    setEditStep('overview');
+    // Validate new Barangay Name if it was changed
+    if (formData.office_name !== originalAccount.office_name) {
+      setIsSubmitting(true);
+      fetch(`${API_BASE}/accounts/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('likas_token')}`
+        },
+        body: JSON.stringify({ office_name: formData.office_name })
+      }).then(async (valResponse) => {
+        if (!valResponse.ok) {
+          const valData = await valResponse.json();
+          setErrorMessage(valData.error || 'Invalid barangay. Please ensure the name is correct and the account does not already exist.');
+          setErrorModalOpen(true);
+          setIsSubmitting(false);
+          return;
+        }
+        setIsSubmitting(false);
+        setEditStep('overview');
+      }).catch(err => {
+        console.error(err);
+        setErrorMessage('Validation failed due to network error.');
+        setErrorModalOpen(true);
+        setIsSubmitting(false);
+      });
+    } else {
+      setEditStep('overview');
+    }
   };
 
   const handleConfirmEdit = async () => {
@@ -307,7 +363,7 @@ export default function AccountManagementPage() {
   const filteredAccounts = accounts.filter(acc => {
     const matchesSearch = 
       acc.office_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      acc.registered_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (acc.registered_email && acc.registered_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       acc.office_reference_no.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'All Status' || 
@@ -316,6 +372,21 @@ export default function AccountManagementPage() {
                           
     return matchesSearch && matchesStatus;
   });
+
+  // --- Pagination Logic ---
+  const totalPages = Math.max(1, Math.ceil(filteredAccounts.length / entries));
+  const startIdx = (page - 1) * entries;
+  const paginatedAccounts = filteredAccounts.slice(startIdx, startIdx + entries);
+  
+  // Reset to page 1 if data or entries change
+  useEffect(() => { setPage(1); }, [searchTerm, statusFilter, entries, accounts.length]);
+
+  const goToPage = (p: number) => setPage(Math.max(1, Math.min(totalPages, p)));
+
+  const WINDOW = 5;
+  const windowStart = Math.floor((page - 1) / WINDOW) * WINDOW + 1;
+  const windowEnd = Math.min(windowStart + WINDOW - 1, totalPages);
+  const pageButtons = Array.from({ length: windowEnd - windowStart + 1 }, (_, i) => windowStart + i);
 
   const activeAccounts = accounts.filter(a => a.status !== 'Archived').length;
   const archivedAccounts = accounts.filter(a => a.status === 'Archived').length;
@@ -431,14 +502,14 @@ export default function AccountManagementPage() {
                       <div className="spinner-dark mx-auto" />
                     </td>
                   </tr>
-                ) : filteredAccounts.length === 0 ? (
+                ) : paginatedAccounts.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      No accounts found.
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 font-inter">
+                      No accounts found matching your search.
                     </td>
                   </tr>
                 ) : (
-                  filteredAccounts.map(acc => (
+                  paginatedAccounts.map(acc => (
                     <tr key={acc.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4 font-medium text-gray-900">{acc.office_name}</td>
                       <td className="px-6 py-4 text-gray-500">{acc.office_reference_no}</td>
@@ -483,6 +554,60 @@ export default function AccountManagementPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Footer */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0 bg-white rounded-b-2xl">
+            <div className="flex items-center gap-1.5 text-xs font-inter text-gray-400 flex-shrink-0">
+              <span>Show</span>
+              <select
+                value={entries}
+                onChange={(e) => setEntries(Number(e.target.value))}
+                className="border border-gray-200 rounded-lg pl-2 pr-6 py-1 text-xs font-inter font-medium text-gray-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-[#1B75BC] cursor-pointer appearance-none bg-no-repeat bg-[right_0.4rem_center] bg-[length:10px]"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")" }}
+              >
+                {[10, 25, 50, 100, 150, 200].map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              <span>entries of {filteredAccounts.length}</span>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {pageButtons.map(p => (
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-inter font-semibold transition-all duration-200 ${
+                        p === page
+                          ? 'bg-[#050A30] text-white scale-105 shadow-sm'
+                          : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
@@ -519,14 +644,26 @@ export default function AccountManagementPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Barangay Name <span className="text-red-500">*</span></label>
+                    <div className="flex bg-gray-50 border border-gray-200 rounded-lg focus-within:border-[#1B75BC] focus-within:bg-white transition-all overflow-hidden text-sm">
+                      <span className="flex items-center pl-4 pr-2 text-gray-500 font-medium bg-gray-100 border-r border-gray-200 whitespace-nowrap">
+                        Barangay
+                      </span>
                       <input 
                         required
                         type="text" 
-                        placeholder="e.g. Barangay 123"
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1B75BC] focus:bg-white transition-all text-sm"
-                        value={formData.office_name}
-                        onChange={e => setFormData({...formData, office_name: e.target.value})}
+                        placeholder="123"
+                        className="w-full px-3 py-2 bg-transparent focus:outline-none"
+                        value={formData.office_name.replace(/^Barangay\s*/i, '')}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setFormData({
+                            ...formData, 
+                            office_name: 'Barangay ' + val,
+                            office_reference_no: 'MLA-BRGY-' + val.toUpperCase().replace(/\s+/g, '')
+                          });
+                        }}
                       />
+                    </div>
                   </div>
                   
                   <div>
@@ -667,13 +804,26 @@ export default function AccountManagementPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Barangay Name <span className="text-red-500">*</span></label>
-                    <input 
-                      required
-                      type="text" 
-                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1B75BC] focus:bg-white transition-all text-sm"
-                      value={formData.office_name}
-                      onChange={e => setFormData({...formData, office_name: e.target.value})}
-                    />
+                    <div className="flex bg-gray-50 border border-gray-200 rounded-lg focus-within:border-[#1B75BC] focus-within:bg-white transition-all overflow-hidden text-sm">
+                      <span className="flex items-center pl-4 pr-2 text-gray-500 font-medium bg-gray-100 border-r border-gray-200 whitespace-nowrap">
+                        Barangay
+                      </span>
+                      <input 
+                        required
+                        type="text" 
+                        placeholder="123"
+                        className="w-full px-3 py-2 bg-transparent focus:outline-none"
+                        value={formData.office_name.replace(/^Barangay\s*/i, '')}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setFormData({
+                            ...formData, 
+                            office_name: 'Barangay ' + val,
+                            office_reference_no: 'MLA-BRGY-' + val.toUpperCase().replace(/\s+/g, '')
+                          });
+                        }}
+                      />
+                    </div>
                   </div>
                   
                   <div>
@@ -783,6 +933,25 @@ export default function AccountManagementPage() {
         onCancel={() => setIsArchiveModalOpen(false)}
         onConfirm={handleArchive}
       />
+
+      {/* Validation Error Modal */}
+      <Modal open={errorModalOpen} onClose={() => setErrorModalOpen(false)} title="Validation Error" size="sm">
+        <div className="text-center pb-2">
+          <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <X size={24} />
+          </div>
+          <h3 className="text-lg font-heading font-bold text-gray-900 mb-2">Wait a moment</h3>
+          <p className="text-sm text-gray-600">{errorMessage}</p>
+        </div>
+        <div className="mt-6 flex justify-center">
+          <button 
+            onClick={() => setErrorModalOpen(false)}
+            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors w-full"
+          >
+            Got it
+          </button>
+        </div>
+      </Modal>
 
       {/* Final Archive Confirmation Modal */}
       {isArchiveConfirmModalOpen && (

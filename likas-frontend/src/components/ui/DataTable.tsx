@@ -55,9 +55,9 @@ export default function DataTable<T>({
   );
 
   return (
-    <div className={`flex flex-col min-h-0 ${className}`}>
+    <div className={`flex flex-col min-h-0 bg-white ${className}`}>
       <div className="overflow-x-auto flex-1">
-        <table className="w-full">
+        <table className="w-full relative">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
               {columns.map(col => (
@@ -115,7 +115,7 @@ export default function DataTable<T>({
       </div>
 
       {/* Footer: entries selector + pagination */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-gray-100 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-gray-100 flex-shrink-0 mt-auto bg-white">
         <div className="flex items-center gap-1.5 text-xs font-inter text-gray-400 flex-shrink-0">
           <span>Show</span>
           <select

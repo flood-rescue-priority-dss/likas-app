@@ -32,67 +32,87 @@ router.get('/summary', verifyToken, async (req, res) => {
 
       // Top Streets by Priority Score (full details)
       const resTopStreets = await pool.query(`
-        SELECT 
-          s.id,
-          s.street_name as "streetName", 
-          b.name as barangay, 
-          CASE WHEN s.priority = 'Very High' THEN 'High' ELSE s.priority END as priority, 
-          s.priority_score as "priorityScore",
-          s.vulnerability_score as "vulnerabilityScore",
-          s.flood_count as "floodCount",
-          s.lat,
-          s.lng
-        FROM street_registry s
-        JOIN barangays b ON s.barangay_id = b.id
-        ORDER BY s.priority_score DESC
+        SELECT * FROM (
+          SELECT DISTINCT ON (s.street_name)
+            s.id,
+            s.street_name as "streetName", 
+            b.name as barangay, 
+            CASE WHEN s.priority = 'Very High' THEN 'High' ELSE s.priority END as priority, 
+            s.priority_score as "priorityScore",
+            s.vulnerability_score as "vulnerabilityScore",
+            s.flood_count as "floodCount",
+            s.lat,
+            s.lng
+          FROM street_registry s
+          JOIN barangays b ON s.barangay_id = b.id
+          ORDER BY s.street_name
+        ) sub
+        ORDER BY "priorityScore" DESC
         LIMIT 5
       `);
       topStreets = resTopStreets.rows;
 
     } else {
       // Barangay: Scoped stats
-      const resBrgy = await pool.query("SELECT population FROM barangays WHERE id = $1", [brgyId]);
-      totalPop = resBrgy.rows[0] ? resBrgy.rows[0].population : 0;
+      let actualBrgyId = null;
+      try {
+        // Fetch office name from user
+        const userRes = await pool.query('SELECT office_name FROM users WHERE id = $1', [brgyId]);
+        if (userRes.rows.length > 0) {
+          const officeName = userRes.rows[0].office_name;
+          // Find matching barangay in barangays table
+          const bRes = await pool.query('SELECT id, population FROM barangays WHERE LOWER(name) = LOWER($1)', [officeName]);
+          if (bRes.rows.length > 0) {
+            actualBrgyId = bRes.rows[0].id;
+            totalPop = bRes.rows[0].population;
+          }
+        }
+      } catch (err) { console.error(err); }
 
-      const resVuln = await pool.query(`
-        SELECT COALESCE(SUM(pwd), 0) as pwd, COALESCE(SUM(elderly), 0) as senior, 
-               COALESCE(SUM(children), 0) as children, COALESCE(SUM(pregnant), 0) as pregnant
-        FROM street_vulnerabilities WHERE barangay_id = $1
-      `, [brgyId]);
-      if (resVuln.rows[0]) {
-        pwd = parseInt(resVuln.rows[0].pwd, 10);
-        senior = parseInt(resVuln.rows[0].senior, 10);
-        children = parseInt(resVuln.rows[0].children, 10);
-        pregnant = parseInt(resVuln.rows[0].pregnant, 10);
+      if (actualBrgyId) {
+        const resVuln = await pool.query(`
+          SELECT COALESCE(SUM(pwd), 0) as pwd, COALESCE(SUM(elderly), 0) as senior, 
+                 COALESCE(SUM(children), 0) as children, COALESCE(SUM(pregnant), 0) as pregnant
+          FROM street_vulnerabilities WHERE barangay_id = $1
+        `, [actualBrgyId]);
+        if (resVuln.rows[0]) {
+          pwd = parseInt(resVuln.rows[0].pwd, 10);
+          senior = parseInt(resVuln.rows[0].senior, 10);
+          children = parseInt(resVuln.rows[0].children, 10);
+          pregnant = parseInt(resVuln.rows[0].pregnant, 10);
+        }
+
+        const resStreets = await pool.query("SELECT COUNT(*) FROM street_registry WHERE barangay_id = $1", [actualBrgyId]);
+        totalStreets = parseInt(resStreets.rows[0].count, 10);
+
+        const resFloods = await pool.query("SELECT COUNT(*) FROM flood_incidents WHERE barangay_id = $1", [actualBrgyId]);
+        totalFloodRecords = parseInt(resFloods.rows[0].count, 10);
+
+        const resHighPrio = await pool.query("SELECT COUNT(*) FROM street_registry WHERE priority IN ('High', 'Very High') AND barangay_id = $1", [actualBrgyId]);
+        highPriorityAreas = parseInt(resHighPrio.rows[0].count, 10);
+
+        const resTopStreets = await pool.query(`
+          SELECT * FROM (
+            SELECT DISTINCT ON (s.street_name)
+              s.id,
+              s.street_name as "streetName", 
+              b.name as barangay, 
+              CASE WHEN s.priority = 'Very High' THEN 'High' ELSE s.priority END as priority, 
+              s.priority_score as "priorityScore",
+              s.vulnerability_score as "vulnerabilityScore",
+              s.flood_count as "floodCount",
+              s.lat,
+              s.lng
+            FROM street_registry s
+            JOIN barangays b ON s.barangay_id = b.id
+            WHERE s.barangay_id = $1
+            ORDER BY s.street_name
+          ) sub
+          ORDER BY "priorityScore" DESC
+          LIMIT 5
+        `, [actualBrgyId]);
+        topStreets = resTopStreets.rows;
       }
-
-      const resStreets = await pool.query("SELECT COUNT(*) FROM street_registry WHERE barangay_id = $1", [brgyId]);
-      totalStreets = parseInt(resStreets.rows[0].count, 10);
-
-      const resFloods = await pool.query("SELECT COUNT(*) FROM flood_incidents WHERE barangay_id = $1", [brgyId]);
-      totalFloodRecords = parseInt(resFloods.rows[0].count, 10);
-
-      const resHighPrio = await pool.query("SELECT COUNT(*) FROM street_registry WHERE priority IN ('High', 'Very High') AND barangay_id = $1", [brgyId]);
-      highPriorityAreas = parseInt(resHighPrio.rows[0].count, 10);
-
-      const resTopStreets = await pool.query(`
-        SELECT 
-          s.id,
-          s.street_name as "streetName", 
-          b.name as barangay, 
-          CASE WHEN s.priority = 'Very High' THEN 'High' ELSE s.priority END as priority, 
-          s.priority_score as "priorityScore",
-          s.vulnerability_score as "vulnerabilityScore",
-          s.flood_count as "floodCount",
-          s.lat,
-          s.lng
-        FROM street_registry s
-        JOIN barangays b ON s.barangay_id = b.id
-        WHERE s.barangay_id = $1
-        ORDER BY s.priority_score DESC
-        LIMIT 5
-      `, [brgyId]);
-      topStreets = resTopStreets.rows;
     }
 
     let populationComparison = [];
@@ -151,8 +171,16 @@ router.get('/summary', verifyToken, async (req, res) => {
       `;
       let recentParams = [];
       if (!isAdmin) {
-        recentQuery += ` WHERE f.barangay_id = $1 `;
-        recentParams.push(brgyId);
+        // use the same lookup for recent floods
+        try {
+          const uRes = await pool.query('SELECT office_name FROM users WHERE id = $1', [brgyId]);
+          if (uRes.rows.length > 0) {
+            recentQuery += ` WHERE LOWER(b.name) = LOWER($1) `;
+            recentParams.push(uRes.rows[0].office_name);
+          } else {
+            recentQuery += ` WHERE 1=0 `;
+          }
+        } catch(e) { recentQuery += ` WHERE 1=0 `; }
       }
       recentQuery += ` ORDER BY f.incident_date DESC, f.incident_time DESC LIMIT 5`;
       const resRecent = await pool.query(recentQuery, recentParams);

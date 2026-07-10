@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2 } from 'lucide-react';
+import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2, Database } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -52,7 +52,7 @@ export default function FloodRecordsDetailPage() {
   // Barangay accounts don't hit this page with a :barangayId in the route,
   // so we pull it from the signed-in user instead — otherwise barangayId is
   // stuck on 'ALL' and hotspots (which require a specific barangay) never load.
-  const [myBarangayName, setMyBarangayName] = useState<string>('');
+  const [myBarangayName, setMyBarangayName] = useState<string>((user as any)?.officeName || '');
   useEffect(() => {
     if (!isBarangay || routeBarangayId) return;
     const myId = (user as any)?.barangayId ?? user?.id;
@@ -60,11 +60,14 @@ export default function FloodRecordsDetailPage() {
   }, [isBarangay, routeBarangayId, user]);
 
   useEffect(() => {
-    if (!isBarangay || !barangayId || barangayId === 'ALL') return;
-    geoService.getBarangayById(barangayId)
-      .then(b => setMyBarangayName(b?.name ?? ''))
-      .catch(() => setMyBarangayName(''));
-  }, [isBarangay, barangayId]);
+    const myId = (user as any)?.barangayId ?? user?.id;
+    if (!isBarangay || !myId || myId === 'ALL') return;
+    geoService.getBarangayById(myId)
+      .then(b => {
+        if (b?.name) setMyBarangayName(b.name);
+      })
+      .catch(() => { /* Keep the initial officeName */ });
+  }, [isBarangay, routeBarangayId, user]);
 
   const handleDistrictChange = async (id: string) => {
     setDistrictId(id);
@@ -290,7 +293,12 @@ export default function FloodRecordsDetailPage() {
 
         {/* Metric cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <MetricCard label="Total Flood Records" value={loading ? '—' : incidents.length} />
+          <MetricCard 
+            label="Total Flood Records" 
+            value={loading ? '-' : incidents.length} 
+            icon={<Database size={14} className="text-indigo-500" />}
+            iconBg="bg-indigo-50"
+          />
           <MetricCard
             label="Avg. Depth"
             value={loading ? '—' : `${avgDepth} in`}

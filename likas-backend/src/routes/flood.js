@@ -4,6 +4,25 @@ const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+async function resolveActualBarangayId(pool, providedId, reqUser) {
+  if (reqUser.role === 'admin' || !providedId || providedId === 'ALL') {
+    return providedId;
+  }
+  try {
+    const userRes = await pool.query('SELECT office_name FROM users WHERE id = $1', [reqUser.id]);
+    if (userRes.rows.length > 0) {
+      const officeName = userRes.rows[0].office_name;
+      const bRes = await pool.query('SELECT id FROM barangays WHERE LOWER(name) = LOWER($1)', [officeName]);
+      if (bRes.rows.length > 0) {
+        return bRes.rows[0].id;
+      }
+    }
+  } catch (err) {
+    console.error('Error resolving actual barangay ID:', err);
+  }
+  return providedId;
+}
+
 router.get('/', verifyToken, async (req, res) => {
   const { districtId, cityId, barangayId, approvalStatus } = req.query;
   
@@ -35,9 +54,10 @@ router.get('/', verifyToken, async (req, res) => {
       paramCount++;
     }
     
-    if (barangayId && barangayId !== 'ALL') {
+    let actualBarangayId = await resolveActualBarangayId(pool, barangayId, req.user);
+    if (actualBarangayId && actualBarangayId !== 'ALL') {
       query += ` AND b.id = $${paramCount}`;
-      params.push(barangayId);
+      params.push(actualBarangayId);
       paramCount++;
     }
     
@@ -65,7 +85,10 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 router.get('/:barangayId', verifyToken, async (req, res) => {
-  if (req.user.role === 'barangay' && req.user.id !== req.params.barangayId) {
+  const actualBarangayId = await resolveActualBarangayId(pool, req.params.barangayId, req.user);
+  const userActualBarangayId = await resolveActualBarangayId(pool, req.user.id, req.user);
+
+  if (req.user.role === 'barangay' && userActualBarangayId !== actualBarangayId) {
     return res.status(403).json({ error: 'Unauthorized to view other barangay data' });
   }
 
@@ -77,7 +100,7 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
               approval_status AS "approvalStatus"
        FROM flood_incidents 
        WHERE barangay_id = $1`,
-      [req.params.barangayId]
+      [actualBarangayId]
     );
 
     // Ensure dates are formatted correctly for frontend
@@ -95,9 +118,15 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
 });
 
 router.post('/:barangayId', verifyToken, async (req, res) => {
+  const actualBarangayId = await resolveActualBarangayId(pool, req.params.barangayId, req.user);
+  const userActualBarangayId = await resolveActualBarangayId(pool, req.user.id, req.user);
+
+  if (req.user.role === 'barangay' && userActualBarangayId !== actualBarangayId) {
+    return res.status(403).json({ error: 'Unauthorized to post other barangay data' });
+  }
+
   try {
     const newId = `fi-${Date.now()}`;
-    const bId = req.params.barangayId;
     const { date, time, street, depthInches, status, cause, priority, force } = req.body;
     // Role is read exclusively from the verified JWT — cannot be spoofed by the client
     const loggedByRole = req.user.role;
@@ -109,7 +138,7 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
       const { rows: existing } = await pool.query(
         `SELECT id FROM flood_incidents 
          WHERE barangay_id = $1 AND street = $2 AND incident_date = $3 AND incident_time = $4`,
-        [bId, street, date, time]
+        [actualBarangayId, street, date, time]
       );
 
       if (existing.length > 0) {
@@ -121,10 +150,10 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
       `INSERT INTO flood_incidents 
        (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, approval_status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [newId, bId, date, time, street, depthInches, status, cause, priority, loggedByRole, approvalStatus]
+      [newId, actualBarangayId, date, time, street, depthInches, status, cause, priority, loggedByRole, approvalStatus]
     );
 
-    res.status(201).json({ id: newId, barangayId: bId, loggedByRole, approvalStatus, ...req.body });
+    res.status(201).json({ id: newId, barangayId: actualBarangayId, loggedByRole, approvalStatus, ...req.body });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -132,7 +161,10 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
 });
 
 router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
-  if (req.user.role === 'barangay' && req.user.id !== req.params.barangayId) {
+  const actualBarangayId = await resolveActualBarangayId(pool, req.params.barangayId, req.user);
+  const userActualBarangayId = await resolveActualBarangayId(pool, req.user.id, req.user);
+
+  if (req.user.role === 'barangay' && userActualBarangayId !== actualBarangayId) {
     return res.status(403).json({ error: 'Unauthorized to view other barangay data' });
   }
 
@@ -153,7 +185,7 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
        GROUP BY street
        ORDER BY "eventCount" DESC
        LIMIT 6`,
-       [req.params.barangayId]
+       [actualBarangayId]
     );
 
     // The frontend chart expects segments to add up to 100 roughly, the above query does that.

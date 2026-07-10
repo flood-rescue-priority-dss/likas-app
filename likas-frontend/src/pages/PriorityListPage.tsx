@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import PageHeader from '../components/ui/PageHeader';
 import { Eye, Map as MapIcon, AlertTriangle } from 'lucide-react';
 import PriorityBadge from '../components/ui/PriorityBadge';
@@ -41,10 +41,12 @@ export default function PriorityListPage() {
     });
   }, [activeFilter]);
 
-  const filtered = items.filter(i =>
-    i.streetName.toLowerCase().includes(search.toLowerCase()) ||
-    i.barangay.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    return items.filter(i =>
+      i.streetName.toLowerCase().includes(search.toLowerCase()) ||
+      i.barangay.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [items, search]);
 
   const FILTER_STYLE: Record<string, string> = {
     All: 'bg-[#050A30] text-white',
@@ -53,7 +55,9 @@ export default function PriorityListPage() {
     Low: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   };
 
-  const dataWithRank = filtered.map((item, i) => ({ ...item, rank: i + 1 }));
+  const dataWithRank = useMemo(() => {
+    return filtered.map((item, i) => ({ ...item, rank: i + 1 }));
+  }, [filtered]);
 
   const columns = [
     { key: 'rank', header: <div className="text-center">Rank</div>, render: (r: any) => <div className="text-center">{r.rank}</div>, className: 'w-20' },

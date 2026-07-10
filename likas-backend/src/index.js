@@ -31,7 +31,8 @@ app.use('/api/population', populationRoutes);
 app.use('/api/street', streetRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/priority', priorityRoutes);
-app.use('/api/accounts', accountsRoutes);
+const { verifyToken } = require('./middleware/auth');
+app.use('/api/accounts', verifyToken, accountsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
