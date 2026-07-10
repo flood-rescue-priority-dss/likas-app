@@ -122,7 +122,7 @@ export default function StreetRegistryDetailPage() {
   };
 
   const columns: Column<StreetRegistryEntry>[] = [
-    { key: 'streetName', header: 'Location', render: r => (
+    { key: 'streetName', header: 'Location', sticky: true, render: r => (
       <span className="font-semibold text-gray-800">{r.streetName}</span>
     )},
     { key: 'floodLevel', header: 'Flood Level', render: r => {

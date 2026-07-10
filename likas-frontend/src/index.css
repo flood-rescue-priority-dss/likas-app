@@ -147,3 +147,37 @@ select {
   height: 48px;
   animation: spin 0.8s linear infinite;
 }
+
+/*
+ * Street Registry — sticky first-column hover sync fix.
+ *
+ * Forces the sticky <td> background to update in the same CSS pass as the
+ * row hover, eliminating the 1-frame paint-layer lag on the compositor.
+ */
+.street-registry-table tbody tr td.sticky {
+  background-color: #ffffff;
+  transition: background-color 0s;
+}
+.street-registry-table tbody tr:hover td.sticky {
+  background-color: rgba(240, 244, 247, 0.8); /* matches hover:bg-[#F0F4F7]/80 */
+}
+.street-registry-table tbody tr.bg-blue-50 td.sticky {
+  background-color: rgb(239, 246, 255); /* bg-blue-50 */
+}
+.street-registry-table tbody tr.bg-blue-50:hover td.sticky {
+  background-color: rgb(239, 246, 255);
+}
+
+/*
+ * Flood Records & Population Vulnerability — suppress sticky-column hover.
+ * The sticky first column stays white (or blue-50 when selected) regardless
+ * of row hover state. All other columns are unaffected.
+ */
+.flood-records-table tbody tr:hover td.sticky,
+.population-table   tbody tr:hover td.sticky {
+  background-color: #ffffff;
+}
+.flood-records-table tbody tr.bg-blue-50:hover td.sticky,
+.population-table   tbody tr.bg-blue-50:hover td.sticky {
+  background-color: rgb(239, 246, 255);
+}
