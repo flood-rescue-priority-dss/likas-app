@@ -93,15 +93,15 @@ export default function DataTable<T>({
                 <tr
                   key={key}
                   onClick={() => onRowClick?.(row)}
-                  className={`group transition-colors ${
-                    onRowClick ? 'cursor-pointer hover:bg-[#F0F4F7]/80' : ''
+                  className={`group ${
+                    onRowClick ? 'cursor-pointer hover:bg-[#F0F4F7]' : ''
                   } ${isSelected ? 'bg-blue-50 border-l-2 border-[#1B75BC]' : ''}`}
                 >
                   {columns.map(col => (
                     <td 
                       key={col.key} 
                       className={`px-4 py-3.5 text-sm font-inter text-gray-700 ${
-                        col.sticky ? `sticky left-0 z-10 ${isSelected ? 'bg-blue-50' : 'bg-white'} ${hoverBg}` : ''
+                        col.sticky ? `sticky left-0 z-10 ${isSelected ? 'bg-blue-50' : 'bg-white'} ${hoverBg} transition-none` : ''
                       } ${col.className ?? ''}`}
                     >
                       {col.render ? col.render(row) : String((row as any)[col.key] ?? '')}

@@ -461,7 +461,7 @@ export default function FloodRecordsDetailPage() {
                 />
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto flood-records-table">
               <DataTable
                 columns={columns as any}
                 data={filteredIncidents}

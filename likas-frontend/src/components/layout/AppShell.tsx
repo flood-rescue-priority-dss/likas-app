@@ -47,11 +47,11 @@ export default function AppShell({
 
       {/* ── Main content ── */}
       <main
-        className="flex-1 overflow-y-auto bg-[#F0F4F7] rounded-tl-3xl md:rounded-tl-3xl rounded-tl-none"
+        className="flex-1 flex flex-col overflow-hidden"
         style={{ minWidth: 0 }}
       >
-        {/* Mobile top bar */}
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-[#050A30]">
+        {/* Mobile top bar — sits outside the scroll area, so it never moves with the page */}
+        <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-[#050A30] flex-shrink-0">
           <button
             onClick={() => setMobileOpen(true)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-white hover:bg-white/10 transition-colors"
@@ -62,7 +62,13 @@ export default function AppShell({
           <span className="text-white font-heading font-bold text-lg tracking-wide">LIKAS</span>
         </div>
 
-        {children}
+        {/* Scrollable page content */}
+        <div
+          className="flex-1 overflow-y-auto bg-[#F0F4F7] rounded-tl-3xl md:rounded-tl-3xl rounded-tl-none"
+          style={{ minWidth: 0 }}
+        >
+          {children}
+        </div>
       </main>
     </div>
   );

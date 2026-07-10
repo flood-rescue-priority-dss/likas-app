@@ -114,7 +114,6 @@ export default function IncidentLogManagementPage() {
     {
       key: 'street',
       header: 'Location',
-      sticky: true,
       render: (incident) => (
         <div>
           <div className="text-sm font-semibold text-gray-800">{incident.street}</div>
@@ -201,7 +200,6 @@ export default function IncidentLogManagementPage() {
       <PageHeader
         title="INCIDENT LOG MANAGEMENT"
         titleUppercase
-        subtitle="Review, approve, or reject incident logs submitted by Barangay users."
       />
 
       {/* Metric Cards */}
