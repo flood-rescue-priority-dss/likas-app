@@ -4,6 +4,7 @@ import { Eye, Map as MapIcon, AlertTriangle } from 'lucide-react';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import Modal from '../components/ui/Modal';
 import MapPreview from '../components/ui/MapPreview';
+import DataTable from '../components/ui/DataTable';
 import { priorityService, floodService } from '../services';
 import type { PriorityItem, Priority, FloodIncident } from '../types';
 
@@ -52,6 +53,26 @@ export default function PriorityListPage() {
     Low: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   };
 
+  const dataWithRank = filtered.map((item, i) => ({ ...item, rank: i + 1 }));
+
+  const columns = [
+    { key: 'rank', header: <div className="text-center">Rank</div>, render: (r: any) => <div className="text-center">{r.rank}</div>, className: 'w-20' },
+    { key: 'barangay', header: 'Barangay', render: (r: any) => r.barangay.replace(/Barangay /i, ''), className: 'w-32' },
+    { key: 'streetName', header: 'Location', render: (r: any) => <span className="font-medium text-gray-900">{r.streetName}</span> },
+    { key: 'priority', header: <div className="text-center">Priority Level</div>, render: (r: any) => <div className="flex justify-center"><PriorityBadge priority={r.priority} size="sm" /></div>, className: 'w-28' },
+    { key: 'action', header: <div className="text-center">Action</div>, render: (r: any) => (
+      <div className="flex justify-center">
+        <button 
+          onClick={() => setSelectedMapItem(r)}
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#f0f9ff] text-[#0284c7] hover:bg-[#e0f2fe] rounded-lg transition-colors font-medium text-xs font-inter w-full border border-[#bae6fd] max-w-[120px]"
+        >
+          <MapIcon size={14} />
+          View Map
+        </button>
+      </div>
+    ), className: 'w-64' }
+  ];
+
   return (
     <div className="p-4 sm:p-6 lg:p-10">
       <PageHeader
@@ -80,56 +101,15 @@ export default function PriorityListPage() {
         </span>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="spinner-dark" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-          <AlertTriangle size={32} className="mb-3 text-gray-300" />
-          <p className="font-inter text-sm">No streets match your filter.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="bg-[#f8fafc] border-b border-gray-100">
-                  <th className="py-3 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center w-20">Rank</th>
-                  <th className="py-3 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap w-32">Barangay</th>
-                  <th className="py-3 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap">Location</th>
-                  <th className="py-3 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center w-28">Priority Level</th>
-                  <th className="py-3 px-6 font-heading font-semibold text-[#475569] text-sm whitespace-nowrap text-center w-64">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((item, i) => {
-                  const barangayNum = item.barangay.replace(/Barangay /i, '');
-                  return (
-                    <tr key={item.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                      <td className="py-3 px-6 text-sm font-inter text-gray-700 text-center">{i + 1}</td>
-                      <td className="py-3 px-6 text-sm font-inter text-gray-700">{barangayNum}</td>
-                      <td className="py-3 px-6 text-sm font-inter font-medium text-gray-900">{item.streetName}</td>
-                      <td className="py-3 px-6 text-sm font-inter text-center">
-                        <PriorityBadge priority={item.priority} size="sm" />
-                      </td>
-                      <td className="py-3 px-6 text-sm font-inter text-center">
-                        <button 
-                          onClick={() => setSelectedMapItem(item)}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#f0f9ff] text-[#0284c7] hover:bg-[#e0f2fe] rounded-lg transition-colors font-medium text-xs font-inter w-full border border-[#bae6fd]"
-                        >
-                          <MapIcon size={14} />
-                          View Map
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+        <DataTable
+          columns={columns}
+          data={dataWithRank}
+          keyExtractor={(r: any) => r.id}
+          loading={loading}
+          emptyMessage="No streets match your filter."
+        />
+      </div>
 
       <Modal
         open={!!selectedMapItem}

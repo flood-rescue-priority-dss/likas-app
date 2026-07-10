@@ -308,7 +308,7 @@ export default function StreetRegistryDetailPage() {
           </div>
 
           {/* Map */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
             <div className="flex items-center gap-2 mb-1">
               <Map size={16} className="text-gray-400" />
               <h2 className="font-heading font-bold text-gray-900 text-base">Map Preview</h2>
@@ -327,18 +327,20 @@ export default function StreetRegistryDetailPage() {
               </div>
             )}
 
-            {loading ? (
-              <div className="w-full bg-gray-100 animate-pulse rounded-xl" style={{ height: '360px' }} />
-            ) : (
-              <MapPreview
-                center={mapCenter}
-                zoom={selectedStreet ? 17 : 15}
-                markerPosition={markerPos}
-                markerLabel={selectedStreet?.streetName ?? scopeLabel}
-                highlightBoundary={selectedBarangay?.name}
-                height="360px"
-              />
-            )}
+            <div className="flex-1 min-h-[360px] relative">
+              {loading ? (
+                <div className="absolute inset-0 bg-gray-100 animate-pulse rounded-xl" />
+              ) : (
+                <MapPreview
+                  center={mapCenter}
+                  zoom={selectedStreet ? 17 : 15}
+                  markerPosition={markerPos}
+                  markerLabel={selectedStreet?.streetName ?? scopeLabel}
+                  highlightBoundary={selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name}
+                  height="100%"
+                />
+              )}
+            </div>
             
             <p className="text-xs font-inter text-gray-400 text-center mt-3">
               Click a location row to update pin

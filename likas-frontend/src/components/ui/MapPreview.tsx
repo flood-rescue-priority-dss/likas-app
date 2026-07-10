@@ -172,13 +172,13 @@ export default function MapPreview({
         }
       };
 
-      const drawPolygon = (geojson: any) => {
+      const drawPolygon = (geojson: any, isNominatim: boolean = false) => {
         let tempLayer = L.geoJSON(geojson);
         const boundsCenter = tempLayer.getBounds().getCenter();
         const expectedCenter = L.latLng(center[0], center[1]);
         
         // If the polygon is more than 3km away from our expected center, it's junk data from Nominatim!
-        if (boundsCenter.distanceTo(expectedCenter) > 3000) {
+        if (isNominatim && boundsCenter.distanceTo(expectedCenter) > 3000) {
           drawFallbackPolygon();
           return;
         }
@@ -203,7 +203,7 @@ export default function MapPreview({
       import('../../data/boundaries.json').then((mod) => {
         const boundaries = mod.default as Record<string, any>;
         if (boundaries[highlightBoundary]) {
-          drawPolygon(boundaries[highlightBoundary]);
+          drawPolygon(boundaries[highlightBoundary], false);
           return;
         }
 
@@ -216,7 +216,7 @@ export default function MapPreview({
         .then(data => {
           if (cancelled) return;
           if (data && data.length > 0 && data[0].geojson) {
-            drawPolygon(data[0].geojson);
+            drawPolygon(data[0].geojson, true);
           } else {
             drawFallbackPolygon();
           }

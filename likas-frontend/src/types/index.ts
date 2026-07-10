@@ -62,7 +62,6 @@ export interface RecurrenceHotspot {
   segmentLow: number;
   segmentMedium: number;
   segmentHigh: number;
-  segmentVeryHigh: number;
 }
 
 // ─── Population Vulnerability ─────────────────────────────────────────────────

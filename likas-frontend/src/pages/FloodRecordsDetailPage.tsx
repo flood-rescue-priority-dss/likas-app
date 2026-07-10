@@ -101,12 +101,9 @@ export default function FloodRecordsDetailPage() {
       return barangayLists.flat().map(b => b.id);
     }
 
-    // Fully unfiltered — walk every district → city → barangay
-    const allDistricts = districts.length ? districts : await geoService.getDistricts();
-    const cityLists = await Promise.all(allDistricts.map(d => geoService.getCitiesByDistrict(d.id)));
-    const allCities = cityLists.flat();
-    const barangayLists = await Promise.all(allCities.map(c => geoService.getBarangaysByCity(c.id)));
-    return barangayLists.flat().map(b => b.id);
+    // Fully unfiltered — we don't need to return all IDs anymore, we just return 'ALL' or similar.
+    // The new endpoint will handle everything if we just don't pass specific IDs.
+    return [];
   };
 
   // ── Fetch flood records whenever filters change ───────────────────────────
@@ -116,11 +113,13 @@ export default function FloodRecordsDetailPage() {
 
     (async () => {
       try {
-        const ids = await resolveScopeBarangayIds();
-        const results = await Promise.all(
-          ids.map(id => floodService.getFloodRecordsByBarangay(id).catch(() => []))
-        );
-        const merged = results.flat().filter(i =>
+        const results = await floodService.getFloodRecordsFiltered({
+          districtId: districtId !== 'ALL' ? districtId : undefined,
+          cityId: cityId !== 'ALL' ? cityId : undefined,
+          barangayId: barangayId !== 'ALL' ? barangayId : undefined,
+        });
+        
+        const merged = results.filter(i =>
           (!startDate || i.date >= startDate) &&
           (!endDate   || i.date <= endDate)
         );
@@ -156,12 +155,11 @@ export default function FloodRecordsDetailPage() {
 
   const avgPriorityScore = () => {
     if (!incidents.length) return 'N/A';
-    const scores: Record<string, number> = { Low: 1, Medium: 2, High: 3, 'Very High': 4 };
+    const scores: Record<string, number> = { Low: 1, Medium: 2, High: 3 };
     const avg = incidents.reduce((s, i) => s + (scores[i.priority] || 1), 0) / incidents.length;
     if (avg < 1.5) return 'Low';
     if (avg < 2.5) return 'Medium';
-    if (avg < 3.5) return 'High';
-    return 'Very High';
+    return 'High';
   };
 
   const handleIncidentSaved = (newIncident: FloodIncident) => {
@@ -440,7 +438,6 @@ export default function FloodRecordsDetailPage() {
                       {h.segmentLow      > 0 && <div className="bg-emerald-400 rounded-full" style={{ flex: h.segmentLow }} />}
                       {h.segmentMedium   > 0 && <div className="bg-amber-400 rounded-full"   style={{ flex: h.segmentMedium }} />}
                       {h.segmentHigh     > 0 && <div className="bg-red-400 rounded-full"     style={{ flex: h.segmentHigh }} />}
-                      {h.segmentVeryHigh > 0 && <div className="bg-[#C62828] rounded-full"   style={{ flex: h.segmentVeryHigh }} />}
                     </div>
                   </div>
                 ))}
@@ -449,7 +446,6 @@ export default function FloodRecordsDetailPage() {
                     { color: 'bg-emerald-400', label: 'Low' },
                     { color: 'bg-amber-400',   label: 'Medium' },
                     { color: 'bg-red-400',     label: 'High' },
-                    { color: 'bg-[#C62828]',   label: 'Very High' },
                   ].map(l => (
                     <div key={l.label} className="flex items-center gap-1.5">
                       <div className={`w-2 h-2 rounded-full ${l.color}`} />

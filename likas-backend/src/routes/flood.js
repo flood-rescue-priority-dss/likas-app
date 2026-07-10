@@ -4,6 +4,59 @@ const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+router.get('/', verifyToken, async (req, res) => {
+  const { districtId, cityId, barangayId } = req.query;
+  
+  try {
+    let query = `
+      SELECT f.id, f.barangay_id AS "barangayId", f.incident_date AS "date", 
+             f.incident_time AS "time", f.street, f.depth_inches AS "depthInches", 
+             f.status, f.cause, f.priority, f.logged_by_role AS "loggedByRole"
+      FROM flood_incidents f
+      JOIN barangays b ON f.barangay_id = b.id
+      JOIN cities c ON b.city_id = c.id
+      JOIN districts d ON c.district_id = d.id
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    let paramCount = 1;
+    
+    if (districtId && districtId !== 'ALL') {
+      query += ` AND d.id = $${paramCount}`;
+      params.push(districtId);
+      paramCount++;
+    }
+    
+    if (cityId && cityId !== 'ALL') {
+      query += ` AND c.id = $${paramCount}`;
+      params.push(cityId);
+      paramCount++;
+    }
+    
+    if (barangayId && barangayId !== 'ALL') {
+      query += ` AND b.id = $${paramCount}`;
+      params.push(barangayId);
+      paramCount++;
+    }
+    
+    query += ' ORDER BY f.incident_date DESC, f.incident_time DESC';
+    
+    const { rows } = await pool.query(query, params);
+
+    const formattedRows = rows.map(r => ({
+      ...r,
+      date: new Date(r.date).toISOString().split('T')[0],
+      time: typeof r.time === 'string' ? r.time.substring(0, 5) : r.time
+    }));
+
+    res.json(formattedRows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/:barangayId', verifyToken, async (req, res) => {
   if (req.user.role === 'barangay' && req.user.id !== req.params.barangayId) {
     return res.status(403).json({ error: 'Unauthorized to view other barangay data' });
@@ -84,7 +137,7 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
          ROUND(SUM(CASE WHEN priority = 'Low' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentLow",
          ROUND(SUM(CASE WHEN priority = 'Medium' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentMedium",
          ROUND(SUM(CASE WHEN priority = 'High' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentHigh",
-         ROUND(SUM(CASE WHEN priority = 'Very High' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentVeryHigh"
+         0 as "segmentVeryHigh"
        FROM flood_incidents
        WHERE barangay_id = $1
        GROUP BY street
