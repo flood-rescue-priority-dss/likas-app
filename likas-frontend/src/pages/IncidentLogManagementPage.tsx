@@ -124,14 +124,21 @@ export default function IncidentLogManagementPage() {
         </div>
       )
     },
-    {
+{
       key: 'barangayId',
       header: 'Submitted By',
-      render: (incident) => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">
-          Brgy. {incident.barangayId.replace('brgy-', '')}
-        </span>
-      )
+      render: (incident) => {
+        // Fallback cleanup just in case barangayName is missing
+        const cleanId = incident.barangayId
+          .replace(/^(bgy|brgy|barangay)-?/i, '')
+          .replace(/^barangay-?/i, '');
+          
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">
+            {incident.barangayName || `Barangay ${cleanId}`}
+          </span>
+        );
+      }
     },
     {
       key: 'date',
