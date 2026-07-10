@@ -5,13 +5,14 @@ const { verifyToken } = require('../middleware/auth');
 const router = express.Router();
 
 router.get('/', verifyToken, async (req, res) => {
-  const { districtId, cityId, barangayId } = req.query;
+  const { districtId, cityId, barangayId, approvalStatus } = req.query;
   
   try {
     let query = `
       SELECT f.id, f.barangay_id AS "barangayId", f.incident_date AS "date", 
              f.incident_time AS "time", f.street, f.depth_inches AS "depthInches", 
-             f.status, f.cause, f.priority, f.logged_by_role AS "loggedByRole"
+             f.status, f.cause, f.priority, f.logged_by_role AS "loggedByRole",
+             f.approval_status AS "approvalStatus", b.name AS "barangayName"
       FROM flood_incidents f
       JOIN barangays b ON f.barangay_id = b.id
       JOIN cities c ON b.city_id = c.id
@@ -37,6 +38,12 @@ router.get('/', verifyToken, async (req, res) => {
     if (barangayId && barangayId !== 'ALL') {
       query += ` AND b.id = $${paramCount}`;
       params.push(barangayId);
+      paramCount++;
+    }
+    
+    if (approvalStatus) {
+      query += ` AND f.approval_status = $${paramCount}`;
+      params.push(approvalStatus);
       paramCount++;
     }
     
@@ -66,7 +73,8 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT id, barangay_id AS "barangayId", incident_date AS "date", 
               incident_time AS "time", street, depth_inches AS "depthInches", 
-              status, cause, priority, logged_by_role AS "loggedByRole"
+              status, cause, priority, logged_by_role AS "loggedByRole",
+              approval_status AS "approvalStatus"
        FROM flood_incidents 
        WHERE barangay_id = $1`,
       [req.params.barangayId]
@@ -93,6 +101,8 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
     const { date, time, street, depthInches, status, cause, priority, force } = req.body;
     // Role is read exclusively from the verified JWT — cannot be spoofed by the client
     const loggedByRole = req.user.role;
+    // Default approval_status: admin logs are auto-approved, barangay logs are pending
+    const approvalStatus = loggedByRole === 'admin' ? 'Approved' : 'Pending';
 
     if (!force) {
       // Check for exact match (duplicate data)
@@ -109,12 +119,12 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
 
     await pool.query(
       `INSERT INTO flood_incidents 
-       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [newId, bId, date, time, street, depthInches, status, cause, priority, loggedByRole]
+       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, approval_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [newId, bId, date, time, street, depthInches, status, cause, priority, loggedByRole, approvalStatus]
     );
 
-    res.status(201).json({ id: newId, barangayId: bId, loggedByRole, ...req.body });
+    res.status(201).json({ id: newId, barangayId: bId, loggedByRole, approvalStatus, ...req.body });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -155,6 +165,145 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
       segmentHigh: parseFloat(r.segmentHigh) || 0,
       segmentVeryHigh: parseFloat(r.segmentVeryHigh) || 0
     })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PUT /flood/incident/:incidentId - Update flood incident (admin only)
+router.put('/incident/:incidentId', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can edit incidents' });
+    }
+
+    const { incidentId } = req.params;
+    const { date, time, street, depthInches, cause } = req.body;
+
+    // Calculate priority based on depth
+    let priority = 'Low';
+    if (depthInches >= 20) priority = 'High';
+    else if (depthInches >= 10) priority = 'Medium';
+
+    const { rows } = await pool.query(
+      `UPDATE flood_incidents 
+       SET incident_date = $1, incident_time = $2, street = $3, 
+           depth_inches = $4, cause = $5, priority = $6
+       WHERE id = $7
+       RETURNING id, barangay_id AS "barangayId", incident_date AS "date", 
+                 incident_time AS "time", street, depth_inches AS "depthInches", 
+                 status, cause, priority, logged_by_role AS "loggedByRole"`,
+      [date, time, street, depthInches, cause, priority, incidentId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+
+    const updated = rows[0];
+    res.json({
+      ...updated,
+      date: new Date(updated.date).toISOString().split('T')[0],
+      time: typeof updated.time === 'string' ? updated.time.substring(0, 5) : updated.time
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// DELETE /flood/incident/:incidentId - Delete flood incident (admin only, password verified)
+router.delete('/incident/:incidentId', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can delete incidents' });
+    }
+
+    const { incidentId } = req.params;
+
+    const { rows } = await pool.query(
+      'DELETE FROM flood_incidents WHERE id = $1 RETURNING id',
+      [incidentId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+
+    res.json({ success: true, id: incidentId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /flood/incident/:incidentId/approve - Approve pending incident (admin only)
+router.post('/incident/:incidentId/approve', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can approve incidents' });
+    }
+
+    const { incidentId } = req.params;
+
+    const { rows } = await pool.query(
+      `UPDATE flood_incidents 
+       SET approval_status = 'Approved'
+       WHERE id = $1
+       RETURNING id, barangay_id AS "barangayId", incident_date AS "date", 
+                 incident_time AS "time", street, depth_inches AS "depthInches", 
+                 status, cause, priority, logged_by_role AS "loggedByRole",
+                 approval_status AS "approvalStatus"`,
+      [incidentId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+
+    const approved = rows[0];
+    res.json({
+      ...approved,
+      date: new Date(approved.date).toISOString().split('T')[0],
+      time: typeof approved.time === 'string' ? approved.time.substring(0, 5) : approved.time
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /flood/incident/:incidentId/reject - Reject pending incident (admin only)
+router.post('/incident/:incidentId/reject', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can reject incidents' });
+    }
+
+    const { incidentId } = req.params;
+
+    const { rows } = await pool.query(
+      `UPDATE flood_incidents 
+       SET approval_status = 'Rejected'
+       WHERE id = $1
+       RETURNING id, barangay_id AS "barangayId", incident_date AS "date", 
+                 incident_time AS "time", street, depth_inches AS "depthInches", 
+                 status, cause, priority, logged_by_role AS "loggedByRole",
+                 approval_status AS "approvalStatus"`,
+      [incidentId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+
+    const rejected = rows[0];
+    res.json({
+      ...rejected,
+      date: new Date(rejected.date).toISOString().split('T')[0],
+      time: typeof rejected.time === 'string' ? rejected.time.substring(0, 5) : rejected.time
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

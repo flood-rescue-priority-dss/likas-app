@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus } from 'lucide-react';
+import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -8,6 +8,8 @@ import PriorityBadge from '../components/ui/PriorityBadge';
 import SearchInput from '../components/ui/SearchInput';
 import DropdownSelect from '../components/ui/DropdownSelect';
 import LogIncidentModal from '../components/modals/LogIncidentModal';
+import EditIncidentModal from '../components/modals/EditIncidentModal';
+import DeleteIncidentModal from '../components/modals/DeleteIncidentModal';
 import { floodService, geoService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import type { FloodIncident, RecurrenceHotspot, District, City, Barangay } from '../types';
@@ -36,6 +38,9 @@ export default function FloodRecordsDetailPage() {
   const [loading,   setLoading]   = useState(true);
   const [tableSearch, setTableSearch] = useState('');
   const [logOpen, setLogOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState<FloodIncident | null>(null);
 
   // ── Load geography dropdowns on mount (admin only) ────────────────────────
   useEffect(() => {
@@ -169,11 +174,40 @@ export default function FloodRecordsDetailPage() {
     }
   };
 
+  const handleIncidentUpdated = (updatedIncident: FloodIncident) => {
+    setIncidents(prev => prev.map(i => i.id === updatedIncident.id ? updatedIncident : i));
+    if (barangayId && barangayId !== 'ALL') {
+      floodService.getRecurrenceHotspots(barangayId).then(setHotspots);
+    }
+  };
+
+  const handleIncidentDeleted = (deletedId: string) => {
+    setIncidents(prev => prev.filter(i => i.id !== deletedId));
+    if (barangayId && barangayId !== 'ALL') {
+      floodService.getRecurrenceHotspots(barangayId).then(setHotspots);
+    }
+  };
+
+  const handleEditClick = (incident: FloodIncident) => {
+    setSelectedIncident(incident);
+    setEditOpen(true);
+  };
+
+  const handleDeleteClick = (incident: FloodIncident) => {
+    setSelectedIncident(incident);
+    setDeleteOpen(true);
+  };
+
   // ── Table columns ─────────────────────────────────────────────────────────
   const columns = [
+    { 
+      key: 'street', 
+      header: 'Location',    
+      render: (r: FloodIncident) => <span className="font-semibold text-gray-800">{r.street}</span>,
+      sticky: true 
+    },
     { key: 'date',   header: 'Date',        render: (r: FloodIncident) => r.date },
     { key: 'time',   header: 'Time',        render: (r: FloodIncident) => r.time },
-    { key: 'street', header: 'Location',    render: (r: FloodIncident) => <span className="font-semibold text-gray-800">{r.street}</span> },
     { key: 'depth',  header: 'Depth (in)',  render: (r: FloodIncident) => r.depthInches },
     { key: 'status', header: 'Status',      render: (r: FloodIncident) => (
       <span className="px-2 py-0.5 rounded text-xs font-inter font-medium bg-gray-100 text-gray-600">{r.status}</span>
@@ -182,7 +216,29 @@ export default function FloodRecordsDetailPage() {
       <span className="text-xs font-inter text-gray-600">{r.cause}</span>
     )},
     { key: 'priority', header: 'Priority',  render: (r: FloodIncident) => <PriorityBadge priority={r.priority} size="sm" /> },
-    { key: 'loggedByRole', header: 'Role', render: (r: FloodIncident) => (
+    ...(user?.role === 'admin' ? [{
+      key: 'actions',
+      header: 'Actions',
+      render: (r: FloodIncident) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleEditClick(r)}
+            className="p-1.5 text-gray-600 hover:text-[#1B75BC] hover:bg-blue-50 rounded-lg transition-colors"
+            title="Edit incident"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={() => handleDeleteClick(r)}
+            className="p-1.5 text-gray-600 hover:text-[#C62828] hover:bg-red-50 rounded-lg transition-colors"
+            title="Delete incident"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }] : []),
+    { key: 'loggedByRole', header: 'Logged By', render: (r: FloodIncident) => (
       r.loggedByRole === 'admin'
         ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-blue-100 text-blue-700">MDRRMO</span>
         : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">Barangay</span>
@@ -222,7 +278,9 @@ export default function FloodRecordsDetailPage() {
             <button
               id="log-incident-btn"
               onClick={() => setLogOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#C62828] hover:bg-red-800 text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm whitespace-nowrap"
+              disabled={!isBarangay && barangayId === 'ALL'}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#C62828] hover:bg-red-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm whitespace-nowrap"
+              title={!isBarangay && barangayId === 'ALL' ? 'Please select a barangay first' : 'Log a new incident'}
             >
               <Plus size={16} />
               Log Incident
@@ -462,8 +520,22 @@ export default function FloodRecordsDetailPage() {
       <LogIncidentModal
         open={logOpen}
         onClose={() => setLogOpen(false)}
-        barangayId={barangayId !== 'ALL' ? barangayId : ((user as any)?.barangayId ?? user?.id ?? '')}
+        barangayId={barangayId !== 'ALL' && barangayId ? barangayId : (isBarangay ? ((user as any)?.barangayId ?? user?.id ?? '') : '')}
         onSaved={handleIncidentSaved}
+      />
+
+      <EditIncidentModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        incident={selectedIncident}
+        onSaved={handleIncidentUpdated}
+      />
+
+      <DeleteIncidentModal
+        open={deleteOpen}
+        onCancel={() => setDeleteOpen(false)}
+        incidentId={selectedIncident?.id ?? null}
+        onDeleted={handleIncidentDeleted}
       />
     </>
   );

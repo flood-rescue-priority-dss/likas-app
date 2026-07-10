@@ -6,6 +6,7 @@ export interface Column<T> {
   header: React.ReactNode;
   render?: (row: T) => React.ReactNode;
   className?: string;
+  sticky?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -62,7 +63,9 @@ export default function DataTable<T>({
               {columns.map(col => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap ${col.className ?? ''}`}
+                  className={`px-4 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap ${
+                    col.sticky ? 'sticky left-0 z-10 bg-gray-50' : ''
+                  } ${col.className ?? ''}`}
                 >
                   {col.header}
                 </th>
@@ -85,16 +88,22 @@ export default function DataTable<T>({
             ) : pageData.map(row => {
               const key = keyExtractor(row);
               const isSelected = selectedKey === key;
+              const hoverBg = isSelected ? 'group-hover:bg-blue-50' : 'group-hover:bg-[#F0F4F7]/80';
               return (
                 <tr
                   key={key}
                   onClick={() => onRowClick?.(row)}
-                  className={`transition-colors ${
+                  className={`group transition-colors ${
                     onRowClick ? 'cursor-pointer hover:bg-[#F0F4F7]/80' : ''
                   } ${isSelected ? 'bg-blue-50 border-l-2 border-[#1B75BC]' : ''}`}
                 >
                   {columns.map(col => (
-                    <td key={col.key} className={`px-4 py-3.5 text-sm font-inter text-gray-700 ${col.className ?? ''}`}>
+                    <td 
+                      key={col.key} 
+                      className={`px-4 py-3.5 text-sm font-inter text-gray-700 ${
+                        col.sticky ? `sticky left-0 z-10 ${isSelected ? 'bg-blue-50' : 'bg-white'} ${hoverBg}` : ''
+                      } ${col.className ?? ''}`}
+                    >
                       {col.render ? col.render(row) : String((row as any)[col.key] ?? '')}
                     </td>
                   ))}

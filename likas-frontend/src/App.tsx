@@ -6,6 +6,7 @@ import AppShell from './components/layout/AppShell';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import FloodRecordsDetailPage from './pages/FloodRecordsDetailPage';
+import IncidentLogManagementPage from './pages/IncidentLogManagementPage';
 import PopulationVulnerabilityPage from './pages/PopulationVulnerabilityPage';
 import StreetRegistryDetailPage from './pages/StreetRegistryDetailPage';
 import AccountSettingsPage from './pages/AccountSettingsPage';
@@ -39,6 +40,7 @@ function AppRoutes() {
               <Routes>
                 <Route path="dashboard/*" element={<DashboardPage />} />
                 <Route path="flood-records" element={<FloodRecordsDetailPage />} />
+                <Route path="incident-management" element={<IncidentLogManagementPage />} />
                 <Route path="population" element={<PopulationVulnerabilityPage />} />
                 <Route path="street-registry" element={<StreetRegistryDetailPage />} />
                 <Route path="account" element={<AccountSettingsPage />} />

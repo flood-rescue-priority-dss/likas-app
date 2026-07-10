@@ -7,7 +7,7 @@ import { floodService } from '../../services';
 import type { FloodIncident, FloodCause, Priority } from '../../types';
 
 const STREETS = ['Padre Faura Taft South Bound', 'NBI Taft', 'Quirino Ave.', 'Taft Avenue', 'Pedro Gil', 'United Nations Avenue'];
-const CAUSES: FloodCause[] = ['Heavy Rainfall', 'Tropical Cyclone', 'High Tide', 'Infrastructure Failure'];
+const CAUSES: FloodCause[] = ['Heavy Rainfall', 'Tropical Cyclone'];
 
 const calcPriority = (depth: number): Priority => {
   if (depth < 10) return 'Low';

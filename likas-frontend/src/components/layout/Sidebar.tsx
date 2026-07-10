@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
     children: [{ to: '/dashboard/priority', label: 'Priority List' }],
   },
   { to: '/flood-records', icon: <CloudRain size={20} />, label: 'Flood Records' },
+  { to: '/incident-management', icon: <AlertTriangle size={20} />, label: 'Incident Management' },
   { to: '/population', icon: <Users size={20} />, label: 'Population Vulnerability' },
   { to: '/street-registry', icon: <Map size={20} />, label: 'Street Registry' },
   { to: '/accounts', icon: <UserCog size={20} />, label: 'Manage Accounts' },
@@ -114,7 +115,13 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
         />
 
         {navItems
-          .filter(item => item.label !== 'Manage Accounts' || user?.role === 'admin')
+          .filter(item => {
+            // Hide "Incident Management" from barangay users
+            if (item.label === 'Incident Management' && user?.role !== 'admin') return false;
+            // Hide "Manage Accounts" from barangay users
+            if (item.label === 'Manage Accounts' && user?.role !== 'admin') return false;
+            return true;
+          })
           .map((item) => {
           const dashboardActive = item.to === '/dashboard' && location.pathname.startsWith('/dashboard');
           const childRouteActive = dashboardActive && location.pathname !== '/dashboard';

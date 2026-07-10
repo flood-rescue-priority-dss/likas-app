@@ -124,18 +124,43 @@ export const floodService = {
   async getFloodRecordsByBarangay(barangayId: string): Promise<FloodIncident[]> {
     return fetchApi<FloodIncident[]>(`/flood/${barangayId}`);
   },
-  async getFloodRecordsFiltered(filters: { districtId?: string; cityId?: string; barangayId?: string; }): Promise<FloodIncident[]> {
+  async getFloodRecordsFiltered(filters: { districtId?: string; cityId?: string; barangayId?: string; approvalStatus?: string; }): Promise<FloodIncident[]> {
     const params = new URLSearchParams();
     if (filters.districtId) params.append('districtId', filters.districtId);
     if (filters.cityId) params.append('cityId', filters.cityId);
     if (filters.barangayId) params.append('barangayId', filters.barangayId);
+    if (filters.approvalStatus) params.append('approvalStatus', filters.approvalStatus);
     const query = params.toString();
     return fetchApi<FloodIncident[]>(`/flood${query ? `?${query}` : ''}`);
   },
-  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole'>, force: boolean = false): Promise<FloodIncident> {
+  async getPendingApprovals(): Promise<FloodIncident[]> {
+    return fetchApi<FloodIncident[]>('/flood?approvalStatus=Pending');
+  },
+  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole' | 'approvalStatus'>, force: boolean = false): Promise<FloodIncident> {
     return fetchApi<FloodIncident>(`/flood/${incident.barangayId}`, {
       method: 'POST',
       body: JSON.stringify({ ...incident, force })
+    });
+  },
+  async updateFloodIncident(incidentId: string, updates: { date: string; time: string; street: string; depthInches: number; cause: string; }): Promise<FloodIncident> {
+    return fetchApi<FloodIncident>(`/flood/incident/${incidentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    });
+  },
+  async deleteFloodIncident(incidentId: string): Promise<{ success: boolean; id: string }> {
+    return fetchApi<{ success: boolean; id: string }>(`/flood/incident/${incidentId}`, {
+      method: 'DELETE'
+    });
+  },
+  async approveIncident(incidentId: string): Promise<FloodIncident> {
+    return fetchApi<FloodIncident>(`/flood/incident/${incidentId}/approve`, {
+      method: 'POST'
+    });
+  },
+  async rejectIncident(incidentId: string): Promise<FloodIncident> {
+    return fetchApi<FloodIncident>(`/flood/incident/${incidentId}/reject`, {
+      method: 'POST'
     });
   },
   async getRecurrenceHotspots(barangayId: string): Promise<RecurrenceHotspot[]> {

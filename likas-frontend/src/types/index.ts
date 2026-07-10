@@ -42,10 +42,12 @@ export interface Barangay {
 export type FloodCause = 'Heavy Rainfall' | 'Tropical Cyclone' | 'High Tide' | 'Infrastructure Failure';
 export type FloodStatus = 'PATV' | 'NPLV' | 'NPATV' | 'MPATV' | 'CLR';
 export type Priority = 'Low' | 'Medium' | 'High';
+export type ApprovalStatus = 'Pending' | 'Approved' | 'Rejected';
 
 export interface FloodIncident {
   id: string;
   barangayId: string;
+  barangayName?: string;
   date: string;       // ISO date string
   time: string;       // HH:MM
   street: string;
@@ -54,6 +56,7 @@ export interface FloodIncident {
   cause: FloodCause;
   priority: Priority;
   loggedByRole: UserRole;
+  approvalStatus?: ApprovalStatus;
 }
 
 export interface RecurrenceHotspot {

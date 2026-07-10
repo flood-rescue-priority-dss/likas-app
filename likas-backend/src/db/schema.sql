@@ -44,7 +44,9 @@ CREATE TABLE flood_incidents (
   depth_inches FLOAT NOT NULL,
   status VARCHAR(20) NOT NULL, -- 'PATV', 'NPLV', 'NPATV', 'MPATV', 'CLR'
   cause VARCHAR(100) NOT NULL,
-  priority VARCHAR(20) NOT NULL -- 'Low', 'Medium', 'High', 'Very High'
+  priority VARCHAR(20) NOT NULL, -- 'Low', 'Medium', 'High', 'Very High'
+  logged_by_role VARCHAR(20) NOT NULL DEFAULT 'barangay',
+  approval_status VARCHAR(20) DEFAULT 'Pending' -- 'Pending', 'Approved', 'Rejected'
 );
 
 CREATE TABLE street_vulnerabilities (
