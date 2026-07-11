@@ -159,14 +159,6 @@ export default function PopulationComparisonCard() {
             <span className="text-xs font-inter font-medium text-gray-500">
               {selectedCount}/{maxCount} Selected
             </span>
-            {selectedCount > 0 && (
-              <button
-                onClick={() => setSelectedIds([])}
-                className="text-xs font-inter font-medium text-[#C62828] hover:text-red-800 transition-colors underline decoration-dotted underline-offset-2"
-              >
-                Clear all
-              </button>
-            )}
           </div>
           {selectedIds.map(id => {
             const bName = barangays.find(b => b.id === id)?.name || id;
@@ -176,6 +168,14 @@ export default function PopulationComparisonCard() {
               </span>
             );
           })}
+          {selectedCount > 0 && (
+            <button
+              onClick={() => setSelectedIds([])}
+              className="text-xs font-inter font-medium text-[#C62828] hover:text-red-800 transition-colors underline decoration-dotted underline-offset-2 ml-1"
+            >
+              Clear all
+            </button>
+          )}
         </div>
       </div>
 

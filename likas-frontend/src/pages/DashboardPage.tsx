@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import MetricCard from '../components/ui/MetricCard';
 import PageHeader from '../components/ui/PageHeader';
 import PriorityBadge from '../components/ui/PriorityBadge';
@@ -28,6 +29,7 @@ const DISTRICT_OVERLAYS: DistrictOverlay[] = [
 ];
 
 function DashboardHome() {
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
@@ -148,7 +150,7 @@ function DashboardHome() {
       </div>
 
       {/* Bottom row: Chart & Timeline (Admin Only) */}
-      {data && (
+      {user?.role === 'admin' && data && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <PopulationComparisonCard />
 
