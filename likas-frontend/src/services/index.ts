@@ -107,6 +107,9 @@ export const geoService = {
   async getDistricts(): Promise<District[]> {
     return fetchApi<District[]>('/geo/districts');
   },
+  async getAllBarangays(): Promise<Barangay[]> {
+    return fetchApi<Barangay[]>('/geo/barangays');
+  },
   async getCitiesByDistrict(districtId: string): Promise<City[]> {
     return fetchApi<City[]>(`/geo/districts/${districtId}/cities`);
   },
@@ -215,6 +218,12 @@ export const streetService = {
 export const dashboardService = {
   async getDashboardSummary(): Promise<DashboardSummary> {
     return fetchApi<DashboardSummary>('/dashboard/summary');
+  },
+  async getPopulationComparison(barangayIds: string[]): Promise<any[]> {
+    return fetchApi<any[]>('/dashboard/population-comparison', {
+      method: 'POST',
+      body: JSON.stringify({ barangayIds })
+    });
   },
 };
 

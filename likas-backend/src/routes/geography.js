@@ -62,6 +62,18 @@ router.get('/cities/:id/barangays', async (req, res) => {
   }
 });
 
+router.get('/barangays', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, name, lat, lng FROM barangays ORDER BY name ASC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/barangays/:id', async (req, res) => {
   try {
     const { rows } = await pool.query(

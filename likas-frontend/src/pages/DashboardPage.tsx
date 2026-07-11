@@ -10,6 +10,7 @@ import { dashboardService } from '../services';
 import type { DashboardSummary } from '../types';
 import PriorityListPage from './PriorityListPage';
 import PriorityCard from '../components/ui/PriorityCard';
+import PopulationComparisonCard from '../components/ui/PopulationComparisonCard';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -147,50 +148,9 @@ function DashboardHome() {
       </div>
 
       {/* Bottom row: Chart & Timeline (Admin Only) */}
-      {data && data.populationComparison?.length > 0 && (
+      {data && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center">
-              <h2 className="font-heading font-semibold text-gray-800 text-base mb-4 w-full text-left">Population per Barangay</h2>
-              {error ? (
-                <div className="flex items-center justify-center h-40 flex-col gap-2">
-                  <AlertTriangle className="text-red-500" size={24} />
-                  <span className="text-gray-500 font-inter text-sm">Failed to connect to server</span>
-                </div>
-              ) : data ? (
-                <div className="flex flex-col w-full flex-1">
-                  <div className="w-full mt-4">
-                    <ResponsiveContainer width="100%" height={320}>
-                        <BarChart data={data.populationComparison || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                          <Tooltip 
-                            shared={false}
-                            cursor={{ fill: '#f1f5f9' }}
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontFamily: 'Inter' }}
-                          />
-
-                          <Bar dataKey="general" stackId="a" fill="#8B5CF6" name="General Population" />
-                          <Bar dataKey="children" stackId="a" fill="#38BDF8" name="Children" />
-                          <Bar dataKey="senior" stackId="a" fill="#F97316" name="Senior" />
-                          <Bar dataKey="pwd" stackId="a" fill="#EAB308" name="PWD" />
-                          <Bar dataKey="pregnant" stackId="a" fill="#EC4899" name="Pregnant Women" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 px-2">
-                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#8B5CF6]" /><span className="font-inter text-[11px] text-gray-600">General Population</span></div>
-                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#38BDF8]" /><span className="font-inter text-[11px] text-gray-600">Children</span></div>
-                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#F97316]" /><span className="font-inter text-[11px] text-gray-600">Senior</span></div>
-                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EAB308]" /><span className="font-inter text-[11px] text-gray-600">PWD</span></div>
-                      <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EC4899]" /><span className="font-inter text-[11px] text-gray-600">Pregnant Women</span></div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-40">
-                  <div className="spinner-dark" />
-                </div>
-              )}
-            </div>
+          <PopulationComparisonCard />
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col h-[420px]">
             <h2 className="font-heading font-semibold text-gray-800 text-base mb-4 flex items-center gap-2">
