@@ -31,6 +31,7 @@ export interface City {
 export interface Barangay {
   id: string;
   cityId: string;
+  districtId: string;
   name: string;
   population: number;
   lat: number;

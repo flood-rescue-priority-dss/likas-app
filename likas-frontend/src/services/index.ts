@@ -110,6 +110,9 @@ export const geoService = {
   async getCitiesByDistrict(districtId: string): Promise<City[]> {
     return fetchApi<City[]>(`/geo/districts/${districtId}/cities`);
   },
+  async getBarangaysByDistrict(districtId: string): Promise<Barangay[]> {
+    return fetchApi<Barangay[]>(`/geo/districts/${districtId}/barangays`);
+  },
   async getBarangaysByCity(cityId: string): Promise<Barangay[]> {
     return fetchApi<Barangay[]>(`/geo/cities/${cityId}/barangays`);
   },

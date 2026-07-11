@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Map, TrendingUp, Shield } from 'lucide-react';
+import { Map, TrendingUp, Shield, AlertTriangle } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -12,6 +12,8 @@ import DropdownSelect from '../components/ui/DropdownSelect';
 import { streetService, geoService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import type { StreetRegistryEntry, District, City, Barangay } from '../types';
+import boundaries from '../data/boundaries.json';
+import { isPointInBoundary } from '../services/utils/geoBounds';
 
 
 export default function StreetRegistryDetailPage() {
@@ -33,6 +35,7 @@ export default function StreetRegistryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [selectedStreet, setSelectedStreet] = useState<StreetRegistryEntry | null>(null);
   const [tableSearch, setTableSearch] = useState('');
+  const [hoveredBoundary, setHoveredBoundary] = useState<string | null>(null);
 
   // ── Load geography dropdowns on mount (admin only) ────────────────────────
   useEffect(() => {
@@ -170,6 +173,14 @@ export default function StreetRegistryDetailPage() {
     ? [selectedStreet.lat, selectedStreet.lng]
     : undefined;
 
+  // Whatever boundary is currently being highlighted on the map is what we
+  // check the selected street's pin against. Purely a display-time check —
+  // doesn't touch how the street was saved, and never blocks anything.
+  const activeBoundaryName = selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name;
+  const isStreetOutOfBounds = !!selectedStreet && !!activeBoundaryName
+    ? !isPointInBoundary(selectedStreet.lat, selectedStreet.lng, boundaries as Record<string, any>, activeBoundaryName)
+    : false;
+
   return (
     <>
       <div className="p-4 sm:p-6 lg:p-10">
@@ -265,6 +276,12 @@ export default function StreetRegistryDetailPage() {
               Showing: <span className="font-semibold text-gray-900">{selectedStreet.streetName}</span>
             </span>
             <PriorityBadge priority={selectedStreet.priority} size="sm" />
+            {isStreetOutOfBounds && (
+              <span className="flex items-center gap-1 text-xs font-inter font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                <AlertTriangle size={12} />
+                Pin falls outside {activeBoundaryName}
+              </span>
+            )}
             <span className="ml-auto text-xs font-inter text-gray-400">
               Score: {selectedStreet.priorityScore} · Vuln: {selectedStreet.vulnerabilityScore}
             </span>
@@ -322,12 +339,27 @@ export default function StreetRegistryDetailPage() {
             
             {/* Selected street indicator */}
             {selectedStreet && (
-              <div className="mb-4 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2">
+              <div className={`mb-4 px-3 py-2 border rounded-lg flex items-center gap-2 ${
+                isStreetOutOfBounds ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-100'
+              }`}>
                 <div className="w-2 h-2 rounded-full bg-[#C62828]" />
                 <span className="text-xs font-inter font-medium text-gray-700">
                   {selectedStreet.streetName}
                 </span>
+                {isStreetOutOfBounds && (
+                  <span className="ml-auto flex items-center gap-1 text-xs font-inter font-medium text-amber-700">
+                    <AlertTriangle size={12} />
+                    Outside {activeBoundaryName}
+                  </span>
+                )}
               </div>
+            )}
+
+            {/* Hover readout */}
+            {hoveredBoundary && (
+              <p className="text-xs font-inter text-gray-400 mb-2">
+                Hovering: <span className="font-medium text-gray-600">{hoveredBoundary}</span>
+              </p>
             )}
 
             <div className="flex-1 min-h-[360px] relative">
@@ -336,10 +368,16 @@ export default function StreetRegistryDetailPage() {
               ) : (
                 <MapPreview
                   center={mapCenter}
-                  zoom={selectedStreet ? 17 : 15}
+                  zoom={selectedStreet ? 17 : districtId !== 'ALL' && cityId === 'ALL' ? 13 : 15}
                   markerPosition={markerPos}
                   markerLabel={selectedStreet?.streetName ?? scopeLabel}
-                  highlightBoundary={selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name}
+                  highlightBoundary={
+                    selectedStreet
+                      ? selectedBarangay?.name
+                      : selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name
+                  }
+                  showHoverBoundary
+                  onHoverBoundary={setHoveredBoundary}
                   height="100%"
                 />
               )}
