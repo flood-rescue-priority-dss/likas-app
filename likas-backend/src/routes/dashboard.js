@@ -146,6 +146,16 @@ router.get('/summary', verifyToken, async (req, res) => {
           pregnant = Math.floor(count * 0.02);
         }
 
+        const totalVulnerable = pwd + senior + children + pregnant;
+        // Ensure vulnerabilities don't exceed 80% of the population due to mock data inconsistencies
+        if (totalVulnerable > count * 0.8) {
+          const scale = (count * 0.8) / totalVulnerable;
+          pwd = Math.floor(pwd * scale);
+          senior = Math.floor(senior * scale);
+          children = Math.floor(children * scale);
+          pregnant = Math.floor(pregnant * scale);
+        }
+
         const general = count - (pwd + senior + children + pregnant);
         return {
           label: r.label,
@@ -239,6 +249,16 @@ router.post('/population-comparison', verifyToken, async (req, res) => {
         senior = Math.floor(count * 0.12);
         children = Math.floor(count * 0.28);
         pregnant = Math.floor(count * 0.02);
+      }
+
+      const totalVulnerable = pwd + senior + children + pregnant;
+      // Ensure vulnerabilities don't exceed 80% of the population due to mock data inconsistencies
+      if (totalVulnerable > count * 0.8) {
+        const scale = (count * 0.8) / totalVulnerable;
+        pwd = Math.floor(pwd * scale);
+        senior = Math.floor(senior * scale);
+        children = Math.floor(children * scale);
+        pregnant = Math.floor(pregnant * scale);
       }
 
       const general = count - (pwd + senior + children + pregnant);

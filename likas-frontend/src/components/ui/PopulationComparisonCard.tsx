@@ -78,7 +78,7 @@ export default function PopulationComparisonCard() {
   const selectedCount = selectedIds.length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center h-full">
       <h2 className="font-heading font-semibold text-gray-800 text-base mb-4 w-full text-left flex items-center gap-2">
         <Users size={18} className="text-[#1B75BC]" />
         Population per Barangay
@@ -170,7 +170,10 @@ export default function PopulationComparisonCard() {
           })}
           {selectedCount > 0 && (
             <button
-              onClick={() => setSelectedIds([])}
+              onClick={() => {
+                setSelectedIds([]);
+                setChartData([]);
+              }}
               className="text-xs font-inter font-medium text-[#C62828] hover:text-red-800 transition-colors underline decoration-dotted underline-offset-2 ml-1"
             >
               Clear all
@@ -185,25 +188,27 @@ export default function PopulationComparisonCard() {
           <span className="text-gray-500 font-inter text-sm">{error}</span>
         </div>
       ) : chartData.length > 0 ? (
-        <div className="flex flex-col w-full flex-1 min-h-[350px]">
-          <div className="w-full">
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <Tooltip 
-                  shared={false}
-                  cursor={{ fill: '#f1f5f9' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontFamily: 'Inter' }}
-                />
-                <Bar dataKey="general" stackId="a" fill="#8B5CF6" name="General Population" />
-                <Bar dataKey="children" stackId="a" fill="#38BDF8" name="Children" />
-                <Bar dataKey="senior" stackId="a" fill="#F97316" name="Senior" />
-                <Bar dataKey="pwd" stackId="a" fill="#EAB308" name="PWD" />
-                <Bar dataKey="pregnant" stackId="a" fill="#EC4899" name="Pregnant Women" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 px-2">
+        <div className="flex flex-col w-full flex-1 mt-4">
+          <div className="w-full flex-1 min-h-[250px] flex flex-col">
+            <div className="flex-1 w-full relative min-h-0">
+              <ResponsiveContainer width="100%" height="100%" className="absolute inset-0">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    shared={false}
+                    cursor={{ fill: '#f1f5f9' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontFamily: 'Inter' }}
+                  />
+                  <Bar dataKey="general" stackId="a" fill="#8B5CF6" name="General Population" />
+                  <Bar dataKey="children" stackId="a" fill="#38BDF8" name="Children" />
+                  <Bar dataKey="senior" stackId="a" fill="#F97316" name="Senior" />
+                  <Bar dataKey="pwd" stackId="a" fill="#EAB308" name="PWD" />
+                  <Bar dataKey="pregnant" stackId="a" fill="#EC4899" name="Pregnant Women" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 px-2 shrink-0">
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#8B5CF6]" /><span className="font-inter text-[11px] text-gray-600">General Population</span></div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#38BDF8]" /><span className="font-inter text-[11px] text-gray-600">Children</span></div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#F97316]" /><span className="font-inter text-[11px] text-gray-600">Senior</span></div>
@@ -213,7 +218,7 @@ export default function PopulationComparisonCard() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center h-64 w-full bg-gray-50 rounded-xl border border-dashed border-gray-200">
+        <div className="flex flex-col items-center justify-center flex-1 w-full mt-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
           <Users size={32} className="text-gray-300 mb-2" />
           <p className="text-sm font-inter text-gray-500">Select barangays and click Load</p>
         </div>

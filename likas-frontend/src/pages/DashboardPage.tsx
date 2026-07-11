@@ -154,7 +154,7 @@ function DashboardHome() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <PopulationComparisonCard />
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col h-[420px]">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col h-full">
             <h2 className="font-heading font-semibold text-gray-800 text-base mb-4 flex items-center gap-2">
               <Clock size={18} className="text-[#1B75BC]" />
               Recent Flood Reports
