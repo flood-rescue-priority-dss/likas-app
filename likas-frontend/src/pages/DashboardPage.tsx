@@ -4,6 +4,7 @@ import MetricCard from '../components/ui/MetricCard';
 import PageHeader from '../components/ui/PageHeader';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import MapPreview from '../components/ui/MapPreview';
+import type { DistrictOverlay } from '../components/ui/MapPreview';
 import { Users, Map, CloudRain, AlertTriangle, Clock } from 'lucide-react';
 import { dashboardService } from '../services';
 import type { DashboardSummary } from '../types';
@@ -14,6 +15,16 @@ import {
 } from 'recharts';
 
 const MANILA_CENTER: [number, number] = [14.5995, 120.9842];
+
+// One color per congressional district. Keys must match boundaries.json exactly.
+const DISTRICT_OVERLAYS: DistrictOverlay[] = [
+  { name: 'District 1', color: '#3b82f6' },   // blue
+  { name: 'District 2', color: '#10b981' },   // emerald
+  { name: 'District 3', color: '#f59e0b' },   // amber
+  { name: 'District 4', color: '#8b5cf6' },   // violet
+  { name: 'District 5', color: '#ef4444' },   // red
+  { name: 'District 6', color: '#ec4899' },   // pink
+];
 
 function DashboardHome() {
   const [data, setData] = useState<DashboardSummary | null>(null);
@@ -76,15 +87,33 @@ function DashboardHome() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-heading font-semibold text-gray-800 text-base">City of Manila, Philippines</h2>
+          {/* District color legend */}
+          <div className="hidden sm:flex items-center gap-3 flex-wrap justify-end">
+            {DISTRICT_OVERLAYS.map(d => (
+              <div key={d.name} className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: d.color, borderColor: d.color }} />
+                <span className="text-xs font-inter text-gray-500">{d.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <MapPreview
           center={MANILA_CENTER}
           zoom={12}
           markerPosition={MANILA_CENTER}
           markerLabel="City of Manila"
-          highlightBoundary="Manila"
+          districtOverlays={DISTRICT_OVERLAYS}
           height="320px"
         />
+        {/* Mobile legend */}
+        <div className="sm:hidden flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">
+          {DISTRICT_OVERLAYS.map(d => (
+            <div key={d.name} className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: d.color, borderColor: d.color }} />
+              <span className="text-xs font-inter text-gray-500">{d.name}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Middle row: Priority Cards (Full Width Horizontal Scroll) */}
