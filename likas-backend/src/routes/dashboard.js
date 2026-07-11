@@ -119,7 +119,7 @@ router.get('/summary', verifyToken, async (req, res) => {
     if (isAdmin) {
       // Top 5 populated barangays for comparison
       const resPop = await pool.query(`
-        SELECT b.name as label, b.population as count, 
+        SELECT b.id, b.name as label, b.population as count, 
                COALESCE(SUM(sv.pwd), 0) as pwd,
                COALESCE(SUM(sv.elderly), 0) as senior,
                COALESCE(SUM(sv.children), 0) as children,
@@ -158,6 +158,7 @@ router.get('/summary', verifyToken, async (req, res) => {
 
         const general = count - (pwd + senior + children + pregnant);
         return {
+          id: r.id,
           label: r.label,
           count,
           pwd,

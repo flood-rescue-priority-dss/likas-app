@@ -1,17 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { ChevronDown, AlertTriangle, Users } from 'lucide-react';
+import { ChevronDown, AlertTriangle, Users, Search } from 'lucide-react';
 import { geoService, dashboardService } from '../../services';
 import type { Barangay } from '../../types';
 
-export default function PopulationComparisonCard() {
+interface Props {
+  initialData?: any[];
+}
+
+export default function PopulationComparisonCard({ initialData = [] }: Props) {
   const [barangays, setBarangays] = useState<Barangay[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialData.map(d => d.id));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [chartData, setChartData] = useState<any[]>(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [maxCount, setMaxCount] = useState<number>(5);
+  const [maxCount, setMaxCount] = useState<number>(initialData.length > 0 ? Math.max(initialData.length, 2) : 5);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +38,12 @@ export default function PopulationComparisonCard() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isDropdownOpen) {
+      setSearchTerm('');
+    }
+  }, [isDropdownOpen]);
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => {
@@ -119,26 +130,42 @@ export default function PopulationComparisonCard() {
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto py-1 custom-scrollbar">
-                {barangays.map(b => {
-                  const isSelected = selectedIds.includes(b.id);
-                  const disabled = !isSelected && selectedIds.length >= maxCount;
-                  return (
-                    <div
-                      key={b.id}
-                      onClick={() => !disabled && toggleSelection(b.id)}
-                      className={`px-4 py-2 text-sm font-inter cursor-pointer transition-colors ${
-                        isSelected 
-                          ? 'bg-[#1B75BC]/10 text-[#1B75BC] font-medium' 
-                          : disabled 
-                            ? 'opacity-50 cursor-not-allowed text-gray-400' 
-                            : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {b.name}
-                    </div>
-                  );
-                })}
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden flex flex-col">
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-white shrink-0">
+                  <Search size={14} className="text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="Search barangay..."
+                    className="w-full text-sm font-inter text-gray-700 placeholder:text-gray-400 outline-none bg-transparent"
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+                  {barangays.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase())).map(b => {
+                    const isSelected = selectedIds.includes(b.id);
+                    const disabled = !isSelected && selectedIds.length >= maxCount;
+                    return (
+                      <div
+                        key={b.id}
+                        onClick={() => !disabled && toggleSelection(b.id)}
+                        className={`px-4 py-2 text-sm font-inter cursor-pointer transition-colors ${
+                          isSelected 
+                            ? 'bg-[#1B75BC]/10 text-[#1B75BC] font-medium' 
+                            : disabled 
+                              ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                              : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {b.name}
+                      </div>
+                    );
+                  })}
+                  {barangays.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                    <div className="px-4 py-3 text-sm font-inter text-gray-400">No matches found</div>
+                  )}
+                </div>
               </div>
             )}
           </div>
