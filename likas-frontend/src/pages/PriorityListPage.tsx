@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import PageHeader from '../components/ui/PageHeader';
-import { Eye, Map as MapIcon, AlertTriangle } from 'lucide-react';
+import { Eye, Map as MapIcon, AlertTriangle, History } from 'lucide-react';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import Modal from '../components/ui/Modal';
 import MapPreview from '../components/ui/MapPreview';
 import DataTable from '../components/ui/DataTable';
+import StreetHistoryModal from '../components/modals/StreetHistoryModal';
 import { priorityService, floodService } from '../services';
 import type { PriorityItem, Priority, FloodIncident } from '../types';
 
@@ -16,6 +17,7 @@ export default function PriorityListPage() {
   const [activeFilter, setActiveFilter] = useState<Priority | 'All'>('All');
   const [search, setSearch] = useState('');
   const [selectedMapItem, setSelectedMapItem] = useState<PriorityItem | null>(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<PriorityItem | null>(null);
   const [streetFloods, setStreetFloods] = useState<FloodIncident[]>([]);
   const [loadingFloods, setLoadingFloods] = useState(false);
 
@@ -60,12 +62,12 @@ export default function PriorityListPage() {
   }, [filtered]);
 
   const columns = [
-    { key: 'rank', header: <div className="text-center">Rank</div>, render: (r: any) => <div className="text-center">{r.rank}</div>, className: 'w-20' },
-    { key: 'barangay', header: 'Barangay', render: (r: any) => r.barangay.replace(/Barangay /i, ''), className: 'w-32' },
-    { key: 'streetName', header: 'Location', render: (r: any) => <span className="font-medium text-gray-900">{r.streetName}</span> },
-    { key: 'priority', header: <div className="text-center">Priority Level</div>, render: (r: any) => <div className="flex justify-center"><PriorityBadge priority={r.priority} size="sm" /></div>, className: 'w-28' },
+    { key: 'rank', header: 'Rank', render: (r: any) => <div className="text-center">{r.rank}</div>, className: 'w-20', sortable: true, sortAccessor: (r: any) => r.rank },
+    { key: 'barangay', header: 'Barangay', render: (r: any) => r.barangay.replace(/Barangay /i, ''), className: 'w-32', sortable: true },
+    { key: 'streetName', header: 'Location', render: (r: any) => <span className="font-medium text-gray-900">{r.streetName}</span>, sortable: true },
+    { key: 'priority', header: 'Priority Level', render: (r: any) => <div className="flex justify-center"><PriorityBadge priority={r.priority} size="sm" /></div>, className: 'w-28', sortable: true, sortAccessor: (r: any) => (r.priority === 'High' ? 3 : r.priority === 'Medium' ? 2 : r.priority === 'Low' ? 1 : 0) },
     { key: 'action', header: <div className="text-center">Action</div>, render: (r: any) => (
-      <div className="flex justify-center">
+      <div className="flex justify-center gap-2">
         <button 
           onClick={() => setSelectedMapItem(r)}
           className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#f0f9ff] text-[#0284c7] hover:bg-[#e0f2fe] rounded-lg transition-colors font-medium text-xs font-inter w-full border border-[#bae6fd] max-w-[120px]"
@@ -73,8 +75,15 @@ export default function PriorityListPage() {
           <MapIcon size={14} />
           View Map
         </button>
+        <button 
+          onClick={() => setSelectedHistoryItem(r)}
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#f5f3ff] text-[#7c3aed] hover:bg-[#ede9fe] rounded-lg transition-colors font-medium text-xs font-inter w-full border border-[#ddd6fe] max-w-[120px]"
+        >
+          <History size={14} />
+          History
+        </button>
       </div>
-    ), className: 'w-64' }
+    ), className: 'w-80' }
   ];
 
   return (
@@ -192,6 +201,12 @@ export default function PriorityListPage() {
           )}
         </div>
       </Modal>
+
+      <StreetHistoryModal
+        open={!!selectedHistoryItem}
+        onClose={() => setSelectedHistoryItem(null)}
+        item={selectedHistoryItem}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
@@ -7,7 +7,17 @@ export interface Column<T> {
   render?: (row: T) => React.ReactNode;
   className?: string;
   sticky?: boolean;
+  /** Enables click-to-sort on this column's header. */
+  sortable?: boolean;
+  /**
+   * Value to sort by for this column. Defaults to `row[col.key]`.
+   * Provide this when the displayed cell (via `render`) isn't a plain
+   * comparable value — e.g. a badge, or an ordinal like Priority (Low/Medium/High).
+   */
+  sortAccessor?: (row: T) => string | number | null | undefined;
 }
+
+type SortDir = 'asc' | 'desc';
 
 interface DataTableProps<T> {
   columns: Column<T>[];
@@ -21,6 +31,9 @@ interface DataTableProps<T> {
   pageSize?: number;
   className?: string;
   headerAction?: React.ReactNode;
+  /** Column key to sort by initially (must match a `sortable` column). */
+  defaultSortKey?: string;
+  defaultSortDir?: SortDir;
 }
 
 const WINDOW = 5;
@@ -29,16 +42,46 @@ const DEFAULT_ENTRIES = 10;
 
 export default function DataTable<T>({
   columns, data, keyExtractor, loading, emptyMessage = 'No records found.',
-  onRowClick, selectedKey, pageSize, className = '', headerAction
+  onRowClick, selectedKey, pageSize, className = '', headerAction,
+  defaultSortKey, defaultSortDir = 'asc'
 }: DataTableProps<T>) {
   const [entries, setEntries] = React.useState<number>(
     pageSize && ENTRIES_OPTIONS.includes(pageSize) ? pageSize : DEFAULT_ENTRIES
   );
   const [page, setPage] = React.useState(1);
+  const [sortKey, setSortKey] = React.useState<string | undefined>(defaultSortKey);
+  const [sortDir, setSortDir] = React.useState<SortDir>(defaultSortDir);
 
-  const totalPages = Math.max(1, Math.ceil(data.length / entries));
+  const handleSort = (key: string) => {
+    setSortDir(prev => (sortKey === key ? (prev === 'asc' ? 'desc' : 'asc') : 'asc'));
+    setSortKey(key);
+    setPage(1);
+  };
+
+  const sortedData = React.useMemo(() => {
+    if (!sortKey) return data;
+    const col = columns.find(c => c.key === sortKey);
+    if (!col) return data;
+    const getValue = (row: T) => col.sortAccessor ? col.sortAccessor(row) : (row as any)[col.key];
+    return [...data].sort((a, b) => {
+      const av = getValue(a);
+      const bv = getValue(b);
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      let cmp: number;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        cmp = av - bv;
+      } else {
+        cmp = String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [data, sortKey, sortDir, columns]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / entries));
   const start = (page - 1) * entries;
-  const pageData = data.slice(start, start + entries);
+  const pageData = sortedData.slice(start, start + entries);
 
   // Reset to page 1 whenever the dataset or the entries-per-page selection changes.
   React.useEffect(() => { setPage(1); }, [data, entries]);
@@ -63,11 +106,21 @@ export default function DataTable<T>({
               {columns.map(col => (
                 <th
                   key={col.key}
+                  onClick={col.sortable ? () => handleSort(col.key) : undefined}
                   className={`px-4 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap ${
                     col.sticky ? 'sticky left-0 z-10 bg-gray-50' : ''
-                  } ${col.className ?? ''}`}
+                  } ${col.sortable ? 'cursor-pointer select-none hover:text-gray-700 transition-colors' : ''} ${col.className ?? ''}`}
                 >
-                  {col.header}
+                  {col.sortable ? (
+                    <span className="inline-flex items-center gap-1">
+                      {col.header}
+                      {sortKey === col.key ? (
+                        sortDir === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} />
+                      ) : (
+                        <ChevronsUpDown size={13} className="text-gray-300" />
+                      )}
+                    </span>
+                  ) : col.header}
                 </th>
               ))}
             </tr>

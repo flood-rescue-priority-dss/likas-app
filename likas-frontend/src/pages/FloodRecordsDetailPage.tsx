@@ -202,41 +202,26 @@ export default function FloodRecordsDetailPage() {
   };
 
   // ── Table columns ─────────────────────────────────────────────────────────
+  const priorityOrdinal = (p?: string) => (p === 'High' ? 3 : p === 'Medium' ? 2 : p === 'Low' ? 1 : 0);
+
   const columns = [
     { 
       key: 'street', 
       header: 'Location',    
       render: (r: FloodIncident) => <span className="font-semibold text-gray-800">{r.street}</span>,
-      sticky: true 
+      sticky: true,
+      sortable: true
     },
-    { key: 'date',   header: 'Date',        render: (r: FloodIncident) => r.date },
-    { key: 'time',   header: 'Time',        render: (r: FloodIncident) => r.time },
-    { key: 'depth',  header: 'Depth (in)',  render: (r: FloodIncident) => r.depthInches },
+    { key: 'date',   header: 'Date',        render: (r: FloodIncident) => r.date, sortable: true },
+    { key: 'time',   header: 'Time',        render: (r: FloodIncident) => r.time, sortable: true },
+    { key: 'depth',  header: 'Depth (in)',  render: (r: FloodIncident) => r.depthInches, sortable: true, sortAccessor: (r: FloodIncident) => r.depthInches },
     { key: 'status', header: 'Status',      render: (r: FloodIncident) => (
       <span className="px-2 py-0.5 rounded text-xs font-inter font-medium bg-gray-100 text-gray-600">{r.status}</span>
-    )},
+    ), sortable: true },
     { key: 'cause',  header: 'Cause',       render: (r: FloodIncident) => (
       <span className="text-xs font-inter text-gray-600">{r.cause}</span>
-    )},
-    { key: 'priority', header: 'Priority',  render: (r: FloodIncident) => <PriorityBadge priority={r.priority} size="sm" /> },
-    { key: 'loggedByRole', header: 'Logged By', render: (r: FloodIncident) => {
-      if (r.loggedByRole === 'admin') {
-        return (
-          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-blue-100 text-blue-700">
-            MDRRMO
-          </span>
-        );
-      }
-
-      // Look up the barangay name or fallback to just 'Barangay'
-      const bName = (r as any).barangayName || barangays.find(b => b.id === r.barangayId)?.name || 'Barangay';
-
-      return (
-        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">
-          {bName}
-        </span>
-      );
-    }},
+    ), sortable: true },
+    { key: 'priority', header: 'Priority',  render: (r: FloodIncident) => <PriorityBadge priority={r.priority} size="sm" />, sortable: true, sortAccessor: (r: FloodIncident) => priorityOrdinal(r.priority) },
     ...(user?.role === 'admin' ? [{
       key: 'actions',
       header: 'Actions',
@@ -259,6 +244,24 @@ export default function FloodRecordsDetailPage() {
         </div>
       )
     }] : []),
+{ key: 'loggedByRole', header: 'Logged By', sortable: true, render: (r: FloodIncident) => {
+      if (r.loggedByRole === 'admin') {
+        return (
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-blue-100 text-blue-700">
+            MDRRMO
+          </span>
+        );
+      }
+
+      // Look up the barangay name or fallback to just 'Barangay'
+      const bName = (r as any).barangayName || barangays.find(b => b.id === r.barangayId)?.name || 'Barangay';
+
+      return (
+        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">
+          {bName}
+        </span>
+      );
+    }},
   ];
 
   // ── Resolved label for breadcrumb / card subtitle ─────────────────────────

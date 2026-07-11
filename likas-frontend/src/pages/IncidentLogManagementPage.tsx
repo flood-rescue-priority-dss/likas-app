@@ -114,6 +114,7 @@ export default function IncidentLogManagementPage() {
     {
       key: 'street',
       header: 'Location',
+      sortable: true,
       render: (incident) => (
         <div>
           <div className="text-sm font-semibold text-gray-800">{incident.street}</div>
@@ -126,6 +127,8 @@ export default function IncidentLogManagementPage() {
 {
       key: 'barangayId',
       header: 'Submitted By',
+      sortable: true,
+      sortAccessor: (incident) => incident.barangayName || incident.barangayId,
       render: (incident) => {
         // Fallback cleanup just in case barangayName is missing
         const cleanId = incident.barangayId
@@ -143,20 +146,24 @@ export default function IncidentLogManagementPage() {
       key: 'date',
       header: 'Date',
       className: 'font-medium',
+      sortable: true,
     },
     {
       key: 'time',
       header: 'Time',
       className: 'font-medium',
+      sortable: true,
     },
     {
       key: 'depthInches',
       header: 'Depth (in)',
       className: 'text-gray-800 font-medium',
+      sortable: true,
     },
     {
       key: 'cause',
       header: 'Cause',
+      sortable: true,
       render: (incident) => (
         <span className="text-xs font-inter text-gray-600">{incident.cause}</span>
       )
@@ -164,6 +171,8 @@ export default function IncidentLogManagementPage() {
     {
       key: 'priority',
       header: 'Priority',
+      sortable: true,
+      sortAccessor: (incident) => (incident.priority === 'High' ? 3 : incident.priority === 'Medium' ? 2 : incident.priority === 'Low' ? 1 : 0),
       render: (incident) => (
         <PriorityBadge priority={incident.priority} size="sm" />
       )
@@ -171,6 +180,8 @@ export default function IncidentLogManagementPage() {
     {
       key: 'approvalStatus',
       header: 'Status',
+      sortable: true,
+      sortAccessor: (incident) => incident.approvalStatus || 'Pending',
       render: (incident) => getStatusBadge(incident.approvalStatus || 'Pending')
     }
   ];
