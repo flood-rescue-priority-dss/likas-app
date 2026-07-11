@@ -1,10 +1,35 @@
 import { useState, useRef, useEffect } from 'react';
-import { Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, MapPin } from 'lucide-react';
 import Modal from '../ui/Modal';
 import DropdownSelect from '../ui/DropdownSelect';
 import InfoTooltip from '../ui/InfoTooltip';
-import { floodService } from '../../services';
-import type { FloodIncident, FloodCause, FloodStatus, Priority } from '../../types';
+import { floodService, geoService } from '../../services';
+import type { FloodIncident, FloodCause, FloodStatus, Priority, Barangay } from '../../types';
+import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON, Tooltip, useMap } from 'react-leaflet';
+import boundariesData from '../../data/boundaries.json';
+import L from 'leaflet';
+
+// Fix leaflet icon issue in React
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+const DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const redIcon = L.divIcon({
+  html: `<div style="
+    width:24px;height:24px;
+    background:#C62828;border:3px solid white;
+    border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+    box-shadow:0 2px 8px rgba(198,40,40,.5);
+  "></div>`,
+  className: '',
+  iconSize:   [24, 24],
+  iconAnchor: [12, 24],
+});
 
 const STREETS = ['Padre Faura Taft South Bound', 'NBI Taft', 'Quirino Ave.', 'Taft Avenue', 'Pedro Gil', 'United Nations Avenue'];
 const CAUSES: FloodCause[] = ['Heavy Rainfall', 'Tropical Cyclone'];
@@ -15,9 +40,6 @@ const calcPriority = (depth: number): Priority => {
   return 'High';
 };
 
-// PATV: depth <= 8in (safe for all vehicles)
-// NPLV: 9in <= depth <= 19in (not passable for light vehicles)
-// NPATV: depth >= 20in (not passable for any vehicle)
 const calcStatus = (depth: number): FloodStatus => {
   if (depth >= 20) return 'NPATV';
   if (depth >= 9) return 'NPLV';
@@ -31,6 +53,30 @@ interface LogIncidentModalProps {
   onSaved: (incident: FloodIncident) => void;
 }
 
+// Component to update map center dynamically
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  const [lat, lng] = center;
+  useEffect(() => {
+    map.setView([lat, lng], map.getZoom(), { animate: true });
+  }, [lat, lng, map]);
+  return null;
+}
+
+// Component to handle map clicks
+function LocationPicker({ position, setPosition }: { position: L.LatLng | null, setPosition: (p: L.LatLng) => void }) {
+  useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+    },
+  });
+  return position ? (
+    <Marker position={position} icon={redIcon}>
+      <Tooltip permanent direction="top" offset={[0, -24]}>Pinned Location</Tooltip>
+    </Marker>
+  ) : null;
+}
+
 export default function LogIncidentModal({ open, onClose, barangayId, onSaved }: LogIncidentModalProps) {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -40,7 +86,55 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showOverridePrompt, setShowOverridePrompt] = useState(false);
-  const [step, setStep] = useState<'form' | 'overview'>('form');
+  
+  // New State for Map Step
+  const [step, setStep] = useState<'map' | 'form' | 'overview'>('map');
+  const [barangay, setBarangay] = useState<Barangay | null>(null);
+  const [position, setPosition] = useState<L.LatLng | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [resolvedLocationName, setResolvedLocationName] = useState<string>('');
+
+  useEffect(() => {
+    if (!position) {
+      setResolvedLocationName('');
+      return;
+    }
+    let active = true;
+    setResolvedLocationName('Fetching...');
+    
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!active) return;
+        const resolvedStreet = data?.address?.road || data?.address?.neighbourhood || data?.address?.suburb;
+        if (resolvedStreet) {
+          setResolvedLocationName(resolvedStreet);
+        }
+      })
+      .catch(e => {
+        console.error('Failed to reverse geocode:', e);
+      });
+    return () => { active = false; };
+  }, [position, barangay]);
+
+  useEffect(() => {
+    if (open && barangayId && barangayId !== 'ALL') {
+      geoService.getBarangayById(barangayId).then(b => {
+        if (b) setBarangay(b);
+      }).catch(console.error);
+    }
+  }, [open, barangayId]);
+
+  const handleProceedToForm = () => {
+    if (!position) {
+      setError('Please pin a location on the map first.');
+      return;
+    }
+    setError('');
+    const isFallback = resolvedLocationName === 'Fetching...';
+    setStreet(isFallback ? '' : resolvedLocationName);
+    setStep('form');
+  };
 
   const handleProceedToOverview = () => {
     if (!date || !time || !street || depth <= 0 || !cause) {
@@ -84,21 +178,97 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
   const resetForm = () => {
     setDate(''); setTime(''); setStreet(''); setDepth(0); setCause('');
-    setError(''); setShowOverridePrompt(false); setStep('form');
+    setPosition(null);
+    setError(''); setShowOverridePrompt(false); setStep('map');
   };
 
   const handleClose = () => { resetForm(); onClose(); };
+
+  // Default to Manila center if barangay not found
+  const mapCenter: [number, number] = barangay && barangay.lat && barangay.lng 
+    ? [barangay.lat, barangay.lng] 
+    : [14.5995, 120.9842];
+
+  const getBoundaryFeature = (bName: string) => {
+    const data = boundariesData as Record<string, any>;
+    if (data[bName]) return data[bName];
+    const key = Object.keys(data).find(k => k.toLowerCase() === bName.toLowerCase());
+    return key ? data[key] : null;
+  };
+  const geojsonFeature = barangay ? getBoundaryFeature(barangay.name) : null;
 
   return (
     <Modal
       open={open}
       onClose={handleClose}
       title="Incident Log"
-      size="md"
+      size={step === 'map' ? 'lg' : 'md'}
       headerRight={<InfoTooltip />}
     >
       <div className="space-y-4">
-        {step === 'form' ? (
+        {step === 'map' ? (
+          <>
+            <div className="text-sm font-inter text-gray-600 mb-2">
+              <p>Pin the exact location of the flood incident on the map.</p>
+              {barangay && <p className="font-semibold text-gray-800 mt-1">Zoomed to {barangay.name}</p>}
+            </div>
+            
+            <div className="relative h-[400px] rounded-xl overflow-hidden border border-gray-200">
+              {open && (
+                <MapContainer center={mapCenter} zoom={16} scrollWheelZoom={true} className="w-full h-full z-0">
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <MapUpdater center={mapCenter} />
+                  {geojsonFeature && (
+                    <GeoJSON 
+                      key={barangay?.name} 
+                      data={geojsonFeature} 
+                      style={{ color: '#EF4444', weight: 2, fillOpacity: 0.1 }} 
+                    />
+                  )}
+                  <LocationPicker position={position} setPosition={setPosition} />
+                </MapContainer>
+              )}
+
+              {/* Location Overlay */}
+              {position && (
+                <div className="absolute bottom-4 left-4 right-4 bg-white rounded-xl shadow-lg p-3 z-[400] flex items-center gap-3">
+                  <div className="pl-2 pr-1 flex-shrink-0">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#050A30" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 0C7.58 0 4 3.58 4 8C4 14 12 24 12 24C12 24 20 14 20 8C20 3.58 16.42 0 12 0ZM12 11.5C10.07 11.5 8.5 9.93 8.5 8C8.5 6.07 10.07 4.5 12 4.5C13.93 4.5 15.5 6.07 15.5 8C15.5 9.93 13.93 11.5 12 11.5Z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Selected Location</p>
+                    <p className="font-bold text-[#050A30] text-[17px] truncate">{resolvedLocationName}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {error && (
+              <p className="text-xs text-[#C62828] font-inter mt-2">{error}</p>
+            )}
+
+            <div className="border-t border-gray-100 pt-4 flex gap-3 mt-2">
+              <button
+                onClick={handleClose}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-heading font-semibold text-sm rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleProceedToForm}
+                disabled={mapLoading || !position}
+                className="flex-1 py-3 bg-[#050A30] hover:bg-[#0a1545] disabled:opacity-60 text-white font-heading font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                {mapLoading ? 'Locating...' : 'Next'}
+              </button>
+            </div>
+          </>
+        ) : step === 'form' ? (
           <>
             {/* Date */}
             <div>
@@ -129,12 +299,19 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
             {/* Street */}
             <div>
               <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Street <span className="text-red-500">*</span></label>
-              <DropdownSelect
-                options={STREETS.map(s => ({ value: s, label: s }))}
-                value={street}
-                onChange={setStreet}
-                placeholder="Type or select a street"
-              />
+              <div className="relative flex items-center">
+                <MapPin className="absolute left-4 text-[#1B75BC]" size={18} />
+                <input
+                  type="text"
+                  value={street}
+                  onChange={e => setStreet(e.target.value)}
+                  placeholder="Street Name"
+                  className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-sm font-inter bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
+                />
+              </div>
+              <p className="text-xs font-inter mt-1 text-gray-400">
+                Resolved from pinned location. You can edit if needed.
+              </p>
             </div>
 
             {/* Flood Depth */}
@@ -178,10 +355,10 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
             <div className="border-t border-gray-100 pt-4 flex gap-3 mt-2">
               <button
-                onClick={handleClose}
+                onClick={() => { setStep('map'); setError(''); }}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-heading font-semibold text-sm rounded-xl transition-colors"
               >
-                Cancel
+                Back
               </button>
               <button
                 onClick={handleProceedToOverview}

@@ -219,6 +219,24 @@ export default function FloodRecordsDetailPage() {
       <span className="text-xs font-inter text-gray-600">{r.cause}</span>
     )},
     { key: 'priority', header: 'Priority',  render: (r: FloodIncident) => <PriorityBadge priority={r.priority} size="sm" /> },
+    { key: 'loggedByRole', header: 'Logged By', render: (r: FloodIncident) => {
+      if (r.loggedByRole === 'admin') {
+        return (
+          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-blue-100 text-blue-700">
+            MDRRMO
+          </span>
+        );
+      }
+
+      // Look up the barangay name or fallback to just 'Barangay'
+      const bName = (r as any).barangayName || barangays.find(b => b.id === r.barangayId)?.name || 'Barangay';
+
+      return (
+        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">
+          {bName}
+        </span>
+      );
+    }},
     ...(user?.role === 'admin' ? [{
       key: 'actions',
       header: 'Actions',
@@ -241,24 +259,6 @@ export default function FloodRecordsDetailPage() {
         </div>
       )
     }] : []),
-{ key: 'loggedByRole', header: 'Logged By', render: (r: FloodIncident) => {
-      if (r.loggedByRole === 'admin') {
-        return (
-          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-blue-100 text-blue-700">
-            MDRRMO
-          </span>
-        );
-      }
-
-      // Look up the barangay name or fallback to just 'Barangay'
-      const bName = (r as any).barangayName || barangays.find(b => b.id === r.barangayId)?.name || 'Barangay';
-
-      return (
-        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-slate-100 text-slate-600">
-          {bName}
-        </span>
-      );
-    }},
   ];
 
   // ── Resolved label for breadcrumb / card subtitle ─────────────────────────
