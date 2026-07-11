@@ -23,20 +23,39 @@ router.get('/districts/:id/cities', async (req, res) => {
   }
 });
 
+// All barangays within a district. `barangays` has no district_id column --
+// district is derived by joining through cities (barangays.city_id ->
+// cities.id -> cities.district_id).
+router.get('/districts/:id/barangays', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT b.id, b.city_id AS "cityId", c.district_id AS "districtId",
+              b.name, b.population, b.lat, b.lng
+       FROM barangays b
+       JOIN cities c ON c.id = b.city_id
+       WHERE c.district_id = $1
+       ORDER BY b.name`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/cities/:id/barangays', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, city_id AS "cityId", name, population, lat, lng FROM barangays WHERE city_id = $1', [req.params.id]);
-    
-    // Format coordinates to match frontend expectations
-    const formattedRows = rows.map(r => ({
-      id: r.id,
-      cityId: r.cityId,
-      name: r.name,
-      population: r.population,
-      lat: r.lat,
-      lng: r.lng
-    }));
-    res.json(formattedRows);
+    const { rows } = await pool.query(
+      `SELECT b.id, b.city_id AS "cityId", c.district_id AS "districtId",
+              b.name, b.population, b.lat, b.lng
+       FROM barangays b
+       JOIN cities c ON c.id = b.city_id
+       WHERE b.city_id = $1
+       ORDER BY b.name`,
+      [req.params.id]
+    );
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -45,18 +64,16 @@ router.get('/cities/:id/barangays', async (req, res) => {
 
 router.get('/barangays/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, city_id AS "cityId", name, population, lat, lng FROM barangays WHERE id = $1', [req.params.id]);
+    const { rows } = await pool.query(
+      `SELECT b.id, b.city_id AS "cityId", c.district_id AS "districtId",
+              b.name, b.population, b.lat, b.lng
+       FROM barangays b
+       JOIN cities c ON c.id = b.city_id
+       WHERE b.id = $1`,
+      [req.params.id]
+    );
     if (rows.length === 0) return res.status(404).json({ error: 'Barangay not found' });
-    
-    const r = rows[0];
-    res.json({
-      id: r.id,
-      cityId: r.cityId,
-      name: r.name,
-      population: r.population,
-      lat: r.lat,
-      lng: r.lng
-    });
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
