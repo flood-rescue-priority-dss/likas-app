@@ -324,10 +324,10 @@ export default function MapPreview({
   }, [mapReady, showHoverBoundary, onHoverBoundary]);
 
   return (
-    <div className="relative" style={{ height }}>
+    <div className={`relative w-full ${className}`} style={{ height }}>
       <div
         ref={mapRef}
-        className={`rounded-2xl overflow-hidden border border-gray-100 h-full ${className}`}
+        className="rounded-2xl overflow-hidden border border-gray-100 h-full"
         style={{ isolation: 'isolate' }}
       />
       {showHoverBoundary && hoveredBoundary && hoverPoint && (
