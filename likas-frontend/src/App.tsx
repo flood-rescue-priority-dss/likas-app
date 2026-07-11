@@ -40,11 +40,15 @@ function AppRoutes() {
               <Routes>
                 <Route path="dashboard/*" element={<DashboardPage />} />
                 <Route path="flood-records" element={<FloodRecordsDetailPage />} />
-                <Route path="incident-management" element={<IncidentLogManagementPage />} />
+                {user?.role === 'admin' && (
+                  <Route path="incident-management" element={<IncidentLogManagementPage />} />
+                )}
                 <Route path="population" element={<PopulationVulnerabilityPage />} />
                 <Route path="street-registry" element={<StreetRegistryDetailPage />} />
                 <Route path="account" element={<AccountSettingsPage />} />
-                <Route path="accounts" element={<AccountManagementPage />} />
+                {user?.role === 'admin' && (
+                  <Route path="accounts" element={<AccountManagementPage />} />
+                )}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </AppShell>
