@@ -110,6 +110,24 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
   }
 });
 
+// Thresholds per DPWH/MDRRMD road-passability classification:
+// PATV  (Passable to All Types of Vehicles):        depth <= 8 in
+// NPLV  (Not Passable to Light Vehicles):            9 in <= depth <= 19 in
+// NPATV (Not Passable to All Types of Vehicles):     depth >= 20 in
+function calcStatus(depthInches) {
+  const depth = Number(depthInches);
+  if (depth >= 20) return 'NPATV';
+  if (depth >= 9) return 'NPLV';
+  return 'PATV';
+}
+
+function calcPriority(depthInches) {
+  const depth = Number(depthInches);
+  if (depth >= 20) return 'High';
+  if (depth >= 10) return 'Medium';
+  return 'Low';
+}
+
 router.post('/:barangayId', verifyToken, async (req, res) => {
   const actualBarangayId = await resolveActualBarangayId(pool, req.params.barangayId, req.user);
   const userActualBarangayId = await resolveActualBarangayId(pool, req.user.id, req.user);
@@ -120,7 +138,10 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
 
   try {
     const newId = `fi-${Date.now()}`;
-    const { date, time, street, depthInches, status, cause, priority, force } = req.body;
+    const { date, time, street, depthInches, cause, force } = req.body;
+    // status and priority are derived from depthInches server-side — never trust client-supplied values
+    const status = calcStatus(depthInches);
+    const priority = calcPriority(depthInches);
     // Role is read exclusively from the verified JWT — cannot be spoofed by the client
     const loggedByRole = req.user.role;
     // Default approval_status: admin logs are auto-approved, barangay logs are pending
@@ -146,7 +167,7 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
       [newId, actualBarangayId, date, time, street, depthInches, status, cause, priority, loggedByRole, approvalStatus]
     );
 
-    res.status(201).json({ id: newId, barangayId: actualBarangayId, loggedByRole, approvalStatus, ...req.body });
+    res.status(201).json({ id: newId, barangayId: actualBarangayId, loggedByRole, approvalStatus, ...req.body, status, priority });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -206,20 +227,19 @@ router.put('/incident/:incidentId', verifyToken, async (req, res) => {
     const { incidentId } = req.params;
     const { date, time, street, depthInches, cause } = req.body;
 
-    // Calculate priority based on depth
-    let priority = 'Low';
-    if (depthInches >= 20) priority = 'High';
-    else if (depthInches >= 10) priority = 'Medium';
+    // Recalculate status and priority from the (possibly edited) depth
+    const status = calcStatus(depthInches);
+    const priority = calcPriority(depthInches);
 
     const { rows } = await pool.query(
       `UPDATE flood_incidents 
        SET incident_date = $1, incident_time = $2, street = $3, 
-           depth_inches = $4, cause = $5, priority = $6
-       WHERE id = $7
+           depth_inches = $4, cause = $5, priority = $6, status = $7
+       WHERE id = $8
        RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
                  TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
                  status, cause, priority, logged_by_role AS "loggedByRole"`,
-      [date, time, street, depthInches, cause, priority, incidentId]
+      [date, time, street, depthInches, cause, priority, status, incidentId]
     );
 
     if (rows.length === 0) {

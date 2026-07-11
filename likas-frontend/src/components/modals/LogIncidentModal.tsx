@@ -4,7 +4,7 @@ import Modal from '../ui/Modal';
 import DropdownSelect from '../ui/DropdownSelect';
 import InfoTooltip from '../ui/InfoTooltip';
 import { floodService } from '../../services';
-import type { FloodIncident, FloodCause, Priority } from '../../types';
+import type { FloodIncident, FloodCause, FloodStatus, Priority } from '../../types';
 
 const STREETS = ['Padre Faura Taft South Bound', 'NBI Taft', 'Quirino Ave.', 'Taft Avenue', 'Pedro Gil', 'United Nations Avenue'];
 const CAUSES: FloodCause[] = ['Heavy Rainfall', 'Tropical Cyclone'];
@@ -13,6 +13,15 @@ const calcPriority = (depth: number): Priority => {
   if (depth < 10) return 'Low';
   if (depth < 20) return 'Medium';
   return 'High';
+};
+
+// PATV: depth <= 8in (safe for all vehicles)
+// NPLV: 9in <= depth <= 19in (not passable for light vehicles)
+// NPATV: depth >= 20in (not passable for any vehicle)
+const calcStatus = (depth: number): FloodStatus => {
+  if (depth >= 20) return 'NPATV';
+  if (depth >= 9) return 'NPLV';
+  return 'PATV';
 };
 
 interface LogIncidentModalProps {
@@ -30,7 +39,6 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   const [cause, setCause] = useState<FloodCause | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [priority, setPriority] = useState<Priority>('Low');
   const [showOverridePrompt, setShowOverridePrompt] = useState(false);
   const [step, setStep] = useState<'form' | 'overview'>('form');
 
@@ -56,9 +64,9 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
         time,
         street,
         depthInches: depth,
-        status: 'PATV',
+        status: calcStatus(depth),
         cause: cause as FloodCause,
-        priority,
+        priority: calcPriority(depth),
       }, forceOverride);
       onSaved(incident);
       resetForm();
@@ -76,7 +84,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
   const resetForm = () => {
     setDate(''); setTime(''); setStreet(''); setDepth(0); setCause('');
-    setError(''); setPriority('Low'); setShowOverridePrompt(false); setStep('form');
+    setError(''); setShowOverridePrompt(false); setStep('form');
   };
 
   const handleClose = () => { resetForm(); onClose(); };
