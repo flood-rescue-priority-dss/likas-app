@@ -4,7 +4,7 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import floodBg from '../assets/Manila_JPEPhotography.jpg';
 import mdrrmdLogo from '../assets/mdrrmd_logo.png';
-import likasLogo from '../assets/likas_logo.jpg';
+import likasLogo from '../assets/likas_logo_2.png';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -45,7 +45,7 @@ export default function LoginPage() {
             <div className="w-22 h-22 bg-white rounded-full flex items-center justify-center shadow-xl bg-cover bg-center"
             style={{ backgroundImage: `url(${mdrrmdLogo})` }}>
             </div>
-            <div className="w-22 h-22 bg-white rounded-full flex items-center justify-center shadow-2xl bg-cover bg-center"
+            <div className="w-22 h-22 bg-none rounded-full flex items-center justify-center shadow-2xl bg-cover bg-center"
             style={{ backgroundImage: `url(${likasLogo})` }}>
             </div>
           </div>
