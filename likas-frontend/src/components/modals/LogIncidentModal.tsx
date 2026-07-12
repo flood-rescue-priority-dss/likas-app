@@ -81,7 +81,8 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [street, setStreet] = useState('');
-  const [depth, setDepth] = useState(0);
+  const MIN_FLOOD_DEPTH = 8;
+  const [depth, setDepth] = useState(MIN_FLOOD_DEPTH);
   const [cause, setCause] = useState<FloodCause | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -137,8 +138,8 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   };
 
   const handleProceedToOverview = () => {
-    if (!date || !time || !street || depth <= 0 || !cause) {
-      setError('Please fill in all required fields (depth must be greater than 0).');
+    if (!date || !time || !street || depth < MIN_FLOOD_DEPTH || !cause) {
+      setError('Please fill in all required fields. Flood depth must be at least ${MIN_FLOOD_DEPTH} inches.');
       return;
     }
     setError('');
@@ -146,8 +147,8 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   };
 
   const handleSave = async (forceOverride = false) => {
-    if (!date || !time || !street || depth <= 0 || !cause) {
-      setError('Please fill in all required fields (depth must be greater than 0).');
+    if (!date || !time || !street || depth < MIN_FLOOD_DEPTH || !cause) {
+      setError('Please fill in all required fields. Flood depth must be at least ${MIN_FLOOD_DEPTH} inches.');
       return;
     }
     setLoading(true); setError('');
@@ -177,7 +178,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   };
 
   const resetForm = () => {
-    setDate(''); setTime(''); setStreet(''); setDepth(0); setCause('');
+    setDate(''); setTime(''); setStreet(''); setDepth(MIN_FLOOD_DEPTH); setCause('');
     setPosition(null);
     setError(''); setShowOverridePrompt(false); setStep('map');
   };
@@ -320,13 +321,25 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min={0}
+                  min={MIN_FLOOD_DEPTH}
+                  step={1}
                   value={depth}
-                  onChange={e => setDepth(Number(e.target.value))}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+
+                    if (Number.isNaN(value)) return;
+
+                    setDepth(Math.max(MIN_FLOOD_DEPTH, value));
+                  }}
                   className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
                 />
                 <span className="px-4 py-3 bg-[#F0F4F7] border border-gray-200 rounded-xl text-sm font-inter text-gray-600 font-medium">in</span>
               </div>
+
+              <p className="text-xs font-inter mt-1 text-gray-400">
+                Flood depth defaults to <strong>8 inches</strong> and cannot be lower.
+              </p>
+
               {depth > 0 && (
                 <p className="text-xs font-inter mt-1 text-gray-400">
                   Estimated priority: <span className={`font-semibold ${
