@@ -40,6 +40,7 @@ export default function AccountManagementPage() {
   // Validation Error Modal
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [editFormError, setEditFormError] = useState('');
 
   // Archive State
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
@@ -186,15 +187,16 @@ export default function AccountManagementPage() {
 
   const openEditModal = (acc: Account) => {
     setFormData({
-      office_name: acc.office_name,
-      office_reference_no: acc.office_reference_no,
-      city_municipality: acc.city_municipality,
-      zone: acc.zone,
-      email: acc.registered_email,
+      office_name: acc.office_name || '',
+      office_reference_no: acc.office_reference_no || '',
+      city_municipality: acc.city_municipality || '',
+      zone: acc.zone || '',
+      email: acc.registered_email || '',
       password: ''
     });
     setEditingAccountId(acc.id);
     setEditStep('form');
+    setEditFormError('');
     setIsEditModalOpen(true);
   };
 
@@ -210,12 +212,14 @@ export default function AccountManagementPage() {
       formData.office_name !== originalAccount.office_name ||
       formData.office_reference_no !== originalAccount.office_reference_no ||
       formData.zone !== (originalAccount.zone || '') ||
-      formData.email !== originalAccount.registered_email;
+      formData.email !== (originalAccount.registered_email || '');
       
     if (!hasChanges) {
-      setIsNoChangesModalOpen(true);
+      setEditFormError('No changes were made. Please modify the details to update the account.');
       return;
     }
+    
+    setEditFormError('');
     
     // Validate new Barangay Name if it was changed
     if (formData.office_name !== originalAccount.office_name) {
@@ -861,8 +865,12 @@ export default function AccountManagementPage() {
                       type="email" 
                       className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1B75BC] focus:bg-white transition-all text-sm"
                       value={formData.email}
-                      onChange={e => setFormData({...formData, email: e.target.value})}
+                      onChange={e => {
+                        setFormData({...formData, email: e.target.value});
+                        if (editFormError) setEditFormError('');
+                      }}
                     />
+                    {editFormError && <p className="text-xs text-red-500 mt-2 font-medium">{editFormError}</p>}
                   </div>
                 </div>
 
