@@ -17,7 +17,7 @@ export default function StreetHistoryModal({ open, onClose, item }: StreetHistor
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!open || !item) return;
+    if (!open || !item.barangayId) return;
     setLoading(true);
     floodService.getFloodRecordsByBarangay(item.barangayId)
       .then(data => {
