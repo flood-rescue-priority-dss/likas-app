@@ -16,14 +16,16 @@ export default function StreetHistoryModal({ open, onClose, item }: StreetHistor
   const [records, setRecords] = useState<FloodIncident[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
   if (!open || !item) return;
 
-  floodService.getFloodRecordsByBarangay(item.barangayId)
+  const currentItem = item;
+
+  floodService.getFloodRecordsByBarangay(currentItem.barangayId || "")
     .then(data => {
       const streetRecords = data.filter(
-        r => r.street.toLowerCase().includes(item.streetName.toLowerCase()) ||
-             item.streetName.toLowerCase().includes(r.street.toLowerCase())
+        r => r.street.toLowerCase().includes(currentItem.streetName.toLowerCase()) ||
+             currentItem.streetName.toLowerCase().includes(r.street.toLowerCase())
       );
       streetRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setRecords(streetRecords);
