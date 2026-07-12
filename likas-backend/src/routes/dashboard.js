@@ -13,9 +13,13 @@ router.get('/summary', verifyToken, async (req, res) => {
     let highPriorityAreas = 0, totalFloodRecords = 0, totalStreets = 0;
     let topStreets = [];
 
+    // Both Admin and Barangay see the global Manila total population
+    const resTotalPop = await pool.query("SELECT SUM(population) FROM barangays");
+    totalPop = parseInt(resTotalPop.rows[0].sum, 10) || 0;
+
     if (isAdmin) {
       // Admin: Global stats
-      totalPop = 1877400; // Manila total
+      
       senior = Math.floor(totalPop * 0.12);
       pwd = Math.floor(totalPop * 0.05);
       children = Math.floor(totalPop * 0.28);
@@ -64,7 +68,7 @@ router.get('/summary', verifyToken, async (req, res) => {
           const bRes = await pool.query('SELECT id, population FROM barangays WHERE LOWER(name) = LOWER($1)', [officeName]);
           if (bRes.rows.length > 0) {
             actualBrgyId = bRes.rows[0].id;
-            totalPop = bRes.rows[0].population;
+            // Removed: totalPop = bRes.rows[0].population; (User requested global pop here)
           }
         }
       } catch (err) { console.error(err); }
