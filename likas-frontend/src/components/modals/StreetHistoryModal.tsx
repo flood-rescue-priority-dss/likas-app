@@ -17,21 +17,19 @@ export default function StreetHistoryModal({ open, onClose, item }: StreetHistor
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!open || !item.barangayId) return;
-    setLoading(true);
-    floodService.getFloodRecordsByBarangay(item.barangayId)
-      .then(data => {
-        // Filter records using fuzzy match
-        const streetRecords = data.filter(
-          r => r.street.toLowerCase().includes(item.streetName.toLowerCase()) || 
-               item.streetName.toLowerCase().includes(r.street.toLowerCase())
-        );
-        // Sort by date descending
-        streetRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setRecords(streetRecords);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+  if (!open || !item) return;
+
+  floodService.getFloodRecordsByBarangay(item.barangayId)
+    .then(data => {
+      const streetRecords = data.filter(
+        r => r.street.toLowerCase().includes(item.streetName.toLowerCase()) ||
+             item.streetName.toLowerCase().includes(r.street.toLowerCase())
+      );
+      streetRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setRecords(streetRecords);
+    })
+    .catch(console.error)
+    .finally(() => setLoading(false));
   }, [open, item]);
 
   if (!item) return null;
