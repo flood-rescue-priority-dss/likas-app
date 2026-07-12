@@ -294,16 +294,29 @@ export default function FloodRecordsDetailPage() {
           title="FLOOD RECORDS"
           titleUppercase
           action={
-            <button
-              id="log-incident-btn"
-              onClick={() => setLogOpen(true)}
-              disabled={!isBarangay && barangayId === 'ALL'}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#C62828] hover:bg-red-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm whitespace-nowrap"
-              title={!isBarangay && barangayId === 'ALL' ? 'Please select a barangay first' : 'Log a new incident'}
-            >
-              <Plus size={16} />
-              Log Incident
-            </button>
+            <div className="relative group">
+              <button
+                id="log-incident-btn"
+                onClick={() => setLogOpen(true)}
+                disabled={!isBarangay && barangayId === 'ALL'}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#C62828] hover:bg-red-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm whitespace-nowrap"
+              >
+                <Plus size={16} />
+                Log Incident
+              </button>
+              {!isBarangay && barangayId === 'ALL' && (
+                <div className="absolute top-full right-0 mt-2 hidden group-hover:block z-50 animate-fadeIn">
+                  <div className="bg-[#2D3748] text-white text-xs font-inter px-4 py-3 rounded-lg shadow-xl min-w-[280px]">
+                    <p className="font-medium text-gray-200 leading-relaxed">
+                      Please select District, Area, and Barangay to log an Incident
+                    </p>
+                    <div className="absolute bottom-full right-4 mb-[-4px]">
+                      <div className="border-[6px] border-transparent border-b-[#2D3748]"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           }
         />
 
