@@ -8,6 +8,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<UserAccount>) => void;
+  /** Re-fetches the current user from GET /me and syncs sessionStorage. */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -36,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     sessionStorage.removeItem('likas_user');
+    sessionStorage.removeItem('likas_token');
     setUser(null);
   };
 
@@ -46,8 +49,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updated);
   };
 
+  const refreshUser = async () => {
+    try {
+      const fresh = await authService.getCurrentUserFromServer();
+      if (fresh) {
+        sessionStorage.setItem('likas_user', JSON.stringify(fresh));
+        setUser(fresh);
+      }
+    } catch {
+      // If the re-fetch fails, leave the existing user in place
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

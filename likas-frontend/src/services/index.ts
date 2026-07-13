@@ -82,6 +82,15 @@ export const authService = {
     return JSON.parse(stored) as UserAccount;
   },
 
+  async getCurrentUserFromServer(): Promise<UserAccount | null> {
+    try {
+      const user = await fetchApi<UserAccount>('/auth/me');
+      return user;
+    } catch {
+      return null;
+    }
+  },
+
   async updateOfficeDetails(accountId: string, updates: Partial<UserAccount>): Promise<UserAccount> {
     const stored = sessionStorage.getItem('likas_user');
     if (stored) {

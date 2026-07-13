@@ -13,6 +13,7 @@ export interface UserAccount {
   registeredEmail: string;
   role: UserRole;
   lastLogin: string;
+  mustChangePassword: boolean;
 }
 
 // ─── Geography ───────────────────────────────────────────────────────────────

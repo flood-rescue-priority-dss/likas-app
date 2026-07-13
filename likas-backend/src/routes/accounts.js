@@ -12,7 +12,9 @@ const pool = new Pool({
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, office_name, office_reference_no, city_municipality, zone, registered_email, status, archived_at FROM users WHERE role = $1 ORDER BY office_name ASC',
+      `SELECT id, office_name, office_reference_no, city_municipality, zone,
+              registered_email, status, archived_at, must_change_password
+       FROM users WHERE role = $1 ORDER BY office_name ASC`,
       ['barangay']
     );
     res.json(result.rows);
@@ -81,15 +83,18 @@ router.post('/', async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (
         id, office_name, city_municipality, zone, region, office_contact, 
-        office_reference_no, registered_email, role, password_hash, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+        office_reference_no, registered_email, role, password_hash, status,
+        must_change_password
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE)
+      RETURNING id, office_name, office_reference_no, city_municipality, zone,
+                registered_email, status, must_change_password`,
       [
         newId, 
         office_name, 
         city_municipality || 'Manila', 
         zone || '', 
-        'NCR', // Default region
-        'N/A', // Default contact
+        'NCR',
+        'N/A',
         office_reference_no, 
         email, 
         'barangay', 

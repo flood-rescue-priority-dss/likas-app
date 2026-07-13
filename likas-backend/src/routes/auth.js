@@ -17,7 +17,8 @@ const mapUser = (row) => ({
   registeredEmail: row.registered_email,
   role: row.role,
   passwordHash: row.password_hash,
-  lastLogin: row.last_login
+  lastLogin: row.last_login,
+  mustChangePassword: row.must_change_password === true,
 });
 
 router.post('/login', async (req, res) => {
@@ -108,9 +109,10 @@ router.post('/register-barangay', verifyToken, async (req, res) => {
 
     const { rows } = await pool.query(
       `INSERT INTO users 
-       (id, office_name, city_municipality, zone, region, office_contact, office_reference_no, registered_email, role, password_hash) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
+       (id, office_name, city_municipality, zone, region, office_contact, office_reference_no, registered_email, role, password_hash, must_change_password) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE)
+       RETURNING id, office_name, city_municipality, zone, region, office_contact,
+                 office_reference_no, registered_email, role, last_login, must_change_password`,
       [id, officeName, 'Manila City', 'N/A', 'NCR', 'N/A', officeReferenceNo, email, 'barangay', passwordHash]
     );
 
@@ -146,7 +148,10 @@ router.post('/change-password', verifyToken, async (req, res) => {
     }
 
     const newHash = bcrypt.hashSync(newPassword, 10);
-    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, req.user.id]);
+    await pool.query(
+      'UPDATE users SET password_hash = $1, must_change_password = FALSE WHERE id = $2',
+      [newHash, req.user.id]
+    );
 
     res.json({ success: true });
   } catch (err) {
