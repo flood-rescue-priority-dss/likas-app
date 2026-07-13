@@ -19,22 +19,44 @@ export default function AnalyticsPage() {
   const [error, setError] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const reportRef = useRef<HTMLDivElement>(null);
+  
+  const chart1Ref = useRef<HTMLDivElement>(null);
+  const chart2Ref = useRef<HTMLDivElement>(null);
+  const chart3Ref = useRef<HTMLDivElement>(null);
+  const chart4Ref = useRef<HTMLDivElement>(null);
 
   const exportToPDF = async () => {
-    if (!reportRef.current) return;
+    if (!chart1Ref.current || !chart2Ref.current || !chart3Ref.current || !chart4Ref.current) return;
     setIsExporting(true);
     try {
-      const imgData = await toPng(reportRef.current, { cacheBust: true, pixelRatio: 2 });
+      // Helper to capture a specific chart
+      const captureChart = async (ref: React.RefObject<HTMLDivElement | null>) => {
+        if (!ref.current) throw new Error('Ref is null');
+        return await toPng(ref.current, { cacheBust: true, pixelRatio: 2 });
+      };
+
+      const img1 = await captureChart(chart1Ref);
+      const img2 = await captureChart(chart2Ref);
+      const img3 = await captureChart(chart3Ref);
+      const img4 = await captureChart(chart4Ref);
+
       const pdf = new jsPDF('p', 'mm', 'a4');
+      const contentWidth = 190; // A4 width (210) minus 20mm total horizontal margins
+      const chartHeight = 125;  // Carefully calculated to fit 2 charts vertically with margins
+
+      // PAGE 1: Title + Chart 1 + Chart 2
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18);
+      pdf.setTextColor(5, 10, 48); // Prussian Blue
+      pdf.text('Likas Analytics & Reports', 10, 16);
       
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      // Since html-to-image doesn't return canvas dimensions directly, we use the DOM node dimensions
-      const nodeWidth = reportRef.current.offsetWidth;
-      const nodeHeight = reportRef.current.offsetHeight;
-      const pdfHeight = (nodeHeight * pdfWidth) / nodeWidth;
+      pdf.addImage(img1, 'PNG', 10, 25, contentWidth, chartHeight);
+      pdf.addImage(img2, 'PNG', 10, 155, contentWidth, chartHeight);
       
-      pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+      // PAGE 2: Chart 3 + Chart 4
+      pdf.addPage();
+      pdf.addImage(img3, 'PNG', 10, 20, contentWidth, chartHeight);
+      pdf.addImage(img4, 'PNG', 10, 150, contentWidth, chartHeight);
       
       const pdfBlob = pdf.output('blob');
       
@@ -107,7 +129,7 @@ export default function AnalyticsPage() {
           <button
             onClick={exportToPDF}
             disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1B75BC] hover:bg-blue-700 text-white font-inter text-sm font-semibold rounded-lg shadow-sm transition-all disabled:opacity-70"
+            className="flex items-center gap-2 px-4 py-2 bg-[#050A30] hover:bg-[#0a1545] text-white font-inter text-sm font-semibold rounded-lg shadow-sm transition-all disabled:opacity-70"
           >
             {isExporting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={18} />}
             {isExporting ? 'Generating PDF...' : 'Download PDF Report'}
@@ -115,12 +137,12 @@ export default function AnalyticsPage() {
         }
       />
 
-      <div ref={reportRef} className="bg-[#F0F4F7] -m-4 p-4 lg:-m-10 lg:p-10 rounded-xl">
+      <div className="bg-[#F0F4F7] -m-4 p-4 lg:-m-10 lg:p-10 rounded-xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* 1. Flood Trends Over Time */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+        <div ref={chart1Ref} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
           <h2 className="font-heading font-semibold text-gray-800 text-base mb-2">Flood Trends Over Time</h2>
-          <p className="text-xs text-gray-500 font-inter mb-6">Historical frequency of incidents to visualize seasonal peaks.</p>
+          <p className="text-sm text-gray-500 mb-6">Historical frequency of incidents by month</p>
           <div className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -143,10 +165,10 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* 2. Primary Causes of Flooding */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+        {/* 2. Primary Causes */}
+        <div ref={chart2Ref} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
           <h2 className="font-heading font-semibold text-gray-800 text-base mb-2">Primary Causes of Flooding</h2>
-          <p className="text-xs text-gray-500 font-inter mb-6">Breakdown of incidents to pinpoint infrastructure vs. natural causes.</p>
+          <p className="text-sm text-gray-500 mb-6">Breakdown of incidents by primary cause</p>
           <div className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -176,9 +198,9 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 3. Priority Distribution */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+        <div ref={chart3Ref} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
           <h2 className="font-heading font-semibold text-gray-800 text-base mb-2">Priority Distribution</h2>
-          <p className="text-xs text-gray-500 font-inter mb-6">Percentage of critical vs. manageable flood zones.</p>
+          <p className="text-sm text-gray-500 mb-6">Percentage of critical vs. manageable flood zones</p>
           <div className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.priorities} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
@@ -200,9 +222,9 @@ export default function AnalyticsPage() {
         </div>
 
         {/* 4. Time of Day Analysis */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+        <div ref={chart4Ref} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
           <h2 className="font-heading font-semibold text-gray-800 text-base mb-2">Time of Day Analysis</h2>
-          <p className="text-xs text-gray-500 font-inter mb-6">When floods are most likely to occur for emergency rescue deployment.</p>
+          <p className="text-sm text-gray-500 mb-6">Incident occurrences grouped by time of day</p>
           <div className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data.timeOfDay}>
