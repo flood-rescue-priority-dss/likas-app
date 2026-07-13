@@ -63,6 +63,7 @@ export interface FloodIncident {
   prioritySource?: string;
   vulnerabilityClass?: string;
   hazardClass?: string;
+  remarksAttachment?: string;
 }
 
 export interface RecurrenceHotspot {

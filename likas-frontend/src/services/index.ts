@@ -155,11 +155,44 @@ export const floodService = {
   async getPendingApprovals(): Promise<FloodIncident[]> {
     return fetchApi<FloodIncident[]>('/flood?approvalStatus=Pending');
   },
-  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole' | 'approvalStatus' | 'loggedByEmail'>, force: boolean = false): Promise<FloodIncident> {
-    return fetchApi<FloodIncident>(`/flood/${incident.barangayId}`, {
+  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole' | 'approvalStatus' | 'loggedByEmail'>, force: boolean = false, remarksFile?: File): Promise<FloodIncident> {
+    const formData = new FormData();
+    formData.append('date', incident.date);
+    formData.append('time', incident.time);
+    formData.append('street', incident.street);
+    formData.append('depthInches', incident.depthInches.toString());
+    formData.append('status', incident.status);
+    formData.append('cause', incident.cause);
+    formData.append('priority', incident.priority);
+    formData.append('force', force.toString());
+    
+    if (remarksFile) {
+      formData.append('remarksAttachment', remarksFile);
+    }
+
+    const token = sessionStorage.getItem('likas_token');
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API_BASE}/flood/${incident.barangayId}`, {
       method: 'POST',
-      body: JSON.stringify({ ...incident, force })
+      headers,
+      body: formData
     });
+
+    if (!res.ok) {
+      let errMsg = 'API Error';
+      try {
+        const errData = await res.json();
+        errMsg = errData.error || errData.message || errMsg;
+      } catch (e) {
+        // Ignore
+      }
+      throw new Error(errMsg);
+    }
+    return res.json();
   },
   async updateFloodIncident(incidentId: string, updates: { date: string; time: string; street: string; depthInches: number; cause: string; }): Promise<FloodIncident> {
     return fetchApi<FloodIncident>(`/flood/incident/${incidentId}`, {

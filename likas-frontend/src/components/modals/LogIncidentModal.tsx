@@ -8,6 +8,7 @@ import type { FloodIncident, FloodCause, FloodStatus, Priority, Barangay } from 
 import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON, Tooltip } from 'react-leaflet';
 import boundariesData from '../../data/boundaries.json';
 import L from 'leaflet';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Fix leaflet icon issue in React
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -68,12 +69,16 @@ function LocationPicker({ position, setPosition }: { position: L.LatLng | null, 
 }
 
 export default function LogIncidentModal({ open, onClose, barangayId, onSaved }: LogIncidentModalProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [street, setStreet] = useState('');
   const MIN_FLOOD_DEPTH = 8;
   const [depth, setDepth] = useState(MIN_FLOOD_DEPTH);
   const [cause, setCause] = useState<FloodCause | ''>('');
+  const [remarksFile, setRemarksFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showOverridePrompt, setShowOverridePrompt] = useState(false);
@@ -130,8 +135,11 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   };
 
   const handleProceedToOverview = () => {
-    if (!date || !time || !street || depth < MIN_FLOOD_DEPTH || !cause) {
-      setError('Please fill in all required fields. Flood depth must be at least ${MIN_FLOOD_DEPTH} inches.');
+    // For barangay users, remarks file is mandatory
+    // For admin users, remarks file is optional
+    if (!date || !time || !street || depth < MIN_FLOOD_DEPTH || !cause || (!isAdmin && !remarksFile)) {
+      const missingRemarksMsg = !isAdmin && !remarksFile ? ' including the remarks attachment' : '';
+      setError(`Please fill in all required fields${missingRemarksMsg}. Flood depth must be at least ${MIN_FLOOD_DEPTH} inches.`);
       return;
     }
     setError('');
@@ -139,8 +147,11 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   };
 
   const handleSave = async (forceOverride = false) => {
-    if (!date || !time || !street || depth < MIN_FLOOD_DEPTH || !cause) {
-      setError('Please fill in all required fields. Flood depth must be at least ${MIN_FLOOD_DEPTH} inches.');
+    // For barangay users, remarks file is mandatory
+    // For admin users, remarks file is optional
+    if (!date || !time || !street || depth < MIN_FLOOD_DEPTH || !cause || (!isAdmin && !remarksFile)) {
+      const missingRemarksMsg = !isAdmin && !remarksFile ? ' including the remarks attachment' : '';
+      setError(`Please fill in all required fields${missingRemarksMsg}. Flood depth must be at least ${MIN_FLOOD_DEPTH} inches.`);
       return;
     }
     setLoading(true); setError('');
@@ -154,7 +165,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
         status: calcStatus(depth),
         cause: cause as FloodCause,
         priority: calcPriority(depth),
-      }, forceOverride);
+      }, forceOverride, remarksFile || undefined);
       onSaved(incident);
       resetForm();
       onClose();
@@ -170,7 +181,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   };
 
   const resetForm = () => {
-    setDate(''); setTime(''); setStreet(''); setDepth(MIN_FLOOD_DEPTH); setCause('');
+    setDate(''); setTime(''); setStreet(''); setDepth(MIN_FLOOD_DEPTH); setCause(''); setRemarksFile(null);
     setPosition(null); setBarangay(null);
     setError(''); setShowOverridePrompt(false); setStep('map');
   };
@@ -363,6 +374,100 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
               />
             </div>
 
+            {/* Remarks - File Upload (Barangay only) */}
+            {!isAdmin && (
+            <div>
+              <label className="block text-xs font-inter font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Remarks <span className="text-red-500">*</span></label>
+              <div
+                className={`relative border-2 border-dashed rounded-xl p-6 transition-colors ${
+                  remarksFile 
+                    ? 'border-emerald-300 bg-emerald-50' 
+                    : 'border-gray-300 bg-gray-50 hover:border-[#1B75BC] hover:bg-blue-50'
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const files = e.dataTransfer.files;
+                  if (files && files[0]) {
+                    const file = files[0];
+                    // Validate file type
+                    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                      setError('Only PNG, JPG, and JPEG files are allowed.');
+                      return;
+                    }
+                    // Validate file size (15MB)
+                    if (file.size > 15 * 1024 * 1024) {
+                      setError('File size must be less than 15MB.');
+                      return;
+                    }
+                    setRemarksFile(file);
+                    setError('');
+                  }
+                }}
+              >
+                <input
+                  type="file"
+                  id="remarksFile"
+                  accept="image/png,image/jpeg,image/jpg"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files && files[0]) {
+                      const file = files[0];
+                      // Validate file size (15MB)
+                      if (file.size > 15 * 1024 * 1024) {
+                        setError('File size must be less than 15MB.');
+                        return;
+                      }
+                      setRemarksFile(file);
+                      setError('');
+                    }
+                  }}
+                />
+                {remarksFile ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{remarksFile.name}</p>
+                        <p className="text-xs text-gray-500">{(remarksFile.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRemarksFile(null)}
+                      className="text-red-500 hover:text-red-700 text-sm font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <label htmlFor="remarksFile" className="cursor-pointer flex flex-col items-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-3">
+                      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      📁 Drag & drop an image here, or browse
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Supports: PNG, JPG, JPEG (Max 15MB)
+                    </p>
+                  </label>
+                )}
+              </div>
+            </div>
+            )}
+
             {error && (
               <p className="text-xs text-[#C62828] font-inter">{error}</p>
             )}
@@ -408,6 +513,17 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Cause</p>
                 <p className="font-medium text-gray-900">{cause}</p>
               </div>
+              {!isAdmin && remarksFile && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Remarks Attachment</p>
+                  <div className="flex items-center gap-2 text-sm text-gray-700">
+                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="font-medium">{remarksFile.name}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {error && !showOverridePrompt && (
