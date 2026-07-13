@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import PageHeader from '../components/ui/PageHeader';
-import { Eye, Map as MapIcon, AlertTriangle, History } from 'lucide-react';
+import { Eye, Map as MapIcon, AlertTriangle } from 'lucide-react';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import Modal from '../components/ui/Modal';
 import MapPreview from '../components/ui/MapPreview';
@@ -75,15 +75,8 @@ export default function PriorityListPage() {
           <MapIcon size={14} />
           View Map
         </button>
-        <button 
-          onClick={() => setSelectedHistoryItem(r)}
-          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#f5f3ff] text-[#7c3aed] hover:bg-[#ede9fe] rounded-lg transition-colors font-medium text-xs font-inter w-full border border-[#ddd6fe] max-w-[120px]"
-        >
-          <History size={14} />
-          History
-        </button>
       </div>
-    ), className: 'w-80' }
+    ), className: 'w-40' }
   ];
 
   return (
@@ -121,6 +114,7 @@ export default function PriorityListPage() {
           keyExtractor={(r: any) => r.id}
           loading={loading}
           emptyMessage="No streets match your filter."
+          showRowNumber={false}
         />
       </div>
 

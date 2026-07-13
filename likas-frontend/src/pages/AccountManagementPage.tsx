@@ -491,6 +491,7 @@ export default function AccountManagementPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50/50 text-gray-600 font-heading">
                 <tr>
+                  <th className="px-6 py-4 font-semibold">No.</th>
                   <th className="px-6 py-4 font-semibold">Barangay Name</th>
                   <th className="px-6 py-4 font-semibold">Reference ID</th>
                   <th className="px-6 py-4 font-semibold">Location</th>
@@ -502,19 +503,20 @@ export default function AccountManagementPage() {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="spinner-dark mx-auto" />
                     </td>
                   </tr>
                 ) : paginatedAccounts.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 font-inter">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-inter">
                       No accounts found matching your search.
                     </td>
                   </tr>
                 ) : (
-                  paginatedAccounts.map(acc => (
+                  paginatedAccounts.map((acc, i) => (
                     <tr key={acc.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 text-gray-500">{startIdx + i + 1}</td>
                       <td className="px-6 py-4 font-medium text-gray-900">{acc.office_name}</td>
                       <td className="px-6 py-4 text-gray-500">{acc.office_reference_no}</td>
                       <td className="px-6 py-4 text-gray-500">{acc.city_municipality}{acc.zone ? `, ${acc.zone}` : ''}</td>

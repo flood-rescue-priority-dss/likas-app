@@ -291,7 +291,7 @@ export default function StreetRegistryDetailPage() {
                 />
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto street-registry-table">
               <DataTable
                 columns={columns}
                 data={filteredStreets}

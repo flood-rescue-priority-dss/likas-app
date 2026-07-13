@@ -34,6 +34,8 @@ interface DataTableProps<T> {
   /** Column key to sort by initially (must match a `sortable` column). */
   defaultSortKey?: string;
   defaultSortDir?: SortDir;
+  /** Shows a leading "No." column with the row's sequential position. Defaults to true. */
+  showRowNumber?: boolean;
 }
 
 const WINDOW = 5;
@@ -43,7 +45,7 @@ const DEFAULT_ENTRIES = 10;
 export default function DataTable<T>({
   columns, data, keyExtractor, loading, emptyMessage = 'No records found.',
   onRowClick, selectedKey, pageSize, className = '', headerAction,
-  defaultSortKey, defaultSortDir = 'asc'
+  defaultSortKey, defaultSortDir = 'asc', showRowNumber = true
 }: DataTableProps<T>) {
   const [entries, setEntries] = React.useState<number>(
     pageSize && ENTRIES_OPTIONS.includes(pageSize) ? pageSize : DEFAULT_ENTRIES
@@ -103,12 +105,17 @@ export default function DataTable<T>({
         <table className="w-full relative">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
+              {showRowNumber && (
+                <th className="sticky left-0 z-20 w-14 px-4 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50">
+                  No.
+                </th>
+              )}
               {columns.map(col => (
                 <th
                   key={col.key}
                   onClick={col.sortable ? () => handleSort(col.key) : undefined}
                   className={`px-4 py-3 text-left text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap ${
-                    col.sticky ? 'sticky left-0 z-10 bg-gray-50' : ''
+                    col.sticky ? `sticky z-10 bg-gray-50 ${showRowNumber ? 'left-14' : 'left-0'}` : ''
                   } ${col.sortable ? 'cursor-pointer select-none hover:text-gray-700 transition-colors' : ''} ${col.className ?? ''}`}
                 >
                   {col.sortable ? (
@@ -128,17 +135,17 @@ export default function DataTable<T>({
           <tbody className="divide-y divide-gray-50">
             {loading ? (
               <tr>
-                <td colSpan={columns.length} className="py-16 text-center">
+                <td colSpan={columns.length + (showRowNumber ? 1 : 0)} className="py-16 text-center">
                   <div className="spinner-dark mx-auto" />
                 </td>
               </tr>
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="py-16 text-center text-sm font-inter text-gray-400">
+                <td colSpan={columns.length + (showRowNumber ? 1 : 0)} className="py-16 text-center text-sm font-inter text-gray-400">
                   {emptyMessage}
                 </td>
               </tr>
-            ) : pageData.map(row => {
+            ) : pageData.map((row, i) => {
               const key = keyExtractor(row);
               const isSelected = selectedKey === key;
               const hoverBg = isSelected ? 'group-hover:bg-blue-50' : 'group-hover:bg-[#F0F4F7]/80';
@@ -150,11 +157,16 @@ export default function DataTable<T>({
                     onRowClick ? 'cursor-pointer hover:bg-[#F0F4F7]' : ''
                   } ${isSelected ? 'bg-blue-50 border-l-2 border-[#1B75BC]' : ''}`}
                 >
+                  {showRowNumber && (
+                    <td className={`sticky left-0 z-10 w-14 px-4 py-3.5 text-sm font-inter text-gray-700 ${isSelected ? 'bg-blue-50' : 'bg-white'} ${hoverBg} transition-none`}>
+                      {start + i + 1}
+                    </td>
+                  )}
                   {columns.map(col => (
                     <td 
                       key={col.key} 
                       className={`px-4 py-3.5 text-sm font-inter text-gray-700 ${
-                        col.sticky ? `sticky left-0 z-10 ${isSelected ? 'bg-blue-50' : 'bg-white'} ${hoverBg} transition-none` : ''
+                        col.sticky ? `sticky z-10 ${showRowNumber ? 'left-14' : 'left-0'} ${isSelected ? 'bg-blue-50' : 'bg-white'} ${hoverBg} transition-none` : ''
                       } ${col.className ?? ''}`}
                     >
                       {col.render ? col.render(row) : String((row as any)[col.key] ?? '')}
