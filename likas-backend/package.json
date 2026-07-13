@@ -19,6 +19,7 @@
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
     "pg": "^8.13.3",
     "shapefile": "^0.6.6",
     "uuid": "^8.3.2"

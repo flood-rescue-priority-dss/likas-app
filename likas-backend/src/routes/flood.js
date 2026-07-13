@@ -1,8 +1,46 @@
 const express = require('express');
 const { pool } = require('../db/index');
 const { verifyToken } = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../../uploads/flood-attachments');
+    // Ensure directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename: timestamp-originalname
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 15 * 1024 * 1024 // 15MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = /jpeg|jpg|png/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only PNG, JPG, and JPEG files are allowed!'));
+    }
+  }
+});
 
 async function resolveActualBarangayId(pool, providedId, reqUser) {
   if (reqUser.role === 'admin' || !providedId || providedId === 'ALL') {
@@ -198,7 +236,7 @@ async function getHybridScore(pool, barangayId, depthInches, status, cause) {
   }
 }
 
-router.post('/:barangayId', verifyToken, async (req, res) => {
+router.post('/:barangayId', verifyToken, upload.single('remarksAttachment'), async (req, res) => {
   const actualBarangayId = await resolveActualBarangayId(pool, req.params.barangayId, req.user);
   const userActualBarangayId = await resolveActualBarangayId(pool, req.user.id, req.user);
 
@@ -209,6 +247,9 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
   try {
     const newId = `fi-${Date.now()}`;
     const { date, time, street, depthInches, cause, force } = req.body;
+    
+    // Get file path if uploaded
+    const remarksAttachment = req.file ? `/uploads/flood-attachments/${req.file.filename}` : null;
     
     const status = calcStatus(depthInches);
     
@@ -243,14 +284,14 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
 
     await pool.query(
       `INSERT INTO flood_incidents 
-       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, logged_by_email, approval_status, vulnerability_class, hazard_class, priority_source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-      [newId, actualBarangayId, date, time, street, depthInches, status, cause, priority, loggedByRole, loggedByEmail, approvalStatus, vulnerabilityClass, hazardClass, prioritySource]
+       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, logged_by_email, approval_status, vulnerability_class, hazard_class, priority_source, remarks_attachment)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+      [newId, actualBarangayId, date, time, street, depthInches, status, cause, priority, loggedByRole, loggedByEmail, approvalStatus, vulnerabilityClass, hazardClass, prioritySource, remarksAttachment]
     );
 
     res.status(201).json({ 
         id: newId, barangayId: actualBarangayId, loggedByRole, loggedByEmail, approvalStatus, ...req.body, 
-        status, priority, vulnerabilityClass, hazardClass, prioritySource 
+        status, priority, vulnerabilityClass, hazardClass, prioritySource, remarksAttachment 
     });
   } catch (err) {
     console.error(err);
