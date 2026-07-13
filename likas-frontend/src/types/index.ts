@@ -152,7 +152,17 @@ export interface DashboardSummary {
   topStreets: PriorityItem[];
   recentFloods: (FloodIncident & { barangayName: string })[];
   causesDistribution?: { name: string; value: number; color: string }[];
+  /** Populated for barangay-role users; null for admin. */
+  barangayInfo: {
+    id: string;
+    name: string;
+    lat: number;
+    lng: number;
+  } | null;
 }
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
 export interface AnalyticsData {
   trends: { month: string; incidents: number }[];
   causes: { name: string; value: number; color: string }[];
