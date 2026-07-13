@@ -205,11 +205,27 @@ export default function StreetRegistryDetailPage() {
         .filter(o => !!o.color)
     : undefined;
 
+  // Derive barangay name from a barangayId slug.
+  // Mirrors the backend fallback: "b-barangay-651" → "Barangay 651",
+  // "brgy-659-a" → "Barangay 659-A". These match boundaries.json keys exactly.
+  const barangayNameFromId = (id: string): string | undefined => {
+    const m = id.match(/(\d+(?:-[a-zA-Z])?)\s*$/);
+    return m ? `Barangay ${m[1].toUpperCase()}` : undefined;
+  };
+
+  // When a street row is selected, show its barangay boundary regardless of
+  // the current dropdown filter state.
+  const selectedStreetBarangayName: string | undefined = selectedStreet
+    ? (barangays.find(b => b.id === selectedStreet.barangayId)?.name
+        ?? barangayNameFromId(selectedStreet.barangayId))
+    : undefined;
+
   const singleHighlight: string | undefined = showAllDistricts
     ? undefined
-    : isBarangay
+    : selectedStreetBarangayName   // street selected → its barangay boundary
+    ?? (isBarangay
       ? (myBarangayName || undefined)
-      : (selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name);
+      : (selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name));
 
   return (
     <>
@@ -382,6 +398,7 @@ export default function StreetRegistryDetailPage() {
                   markerLabel={selectedStreet?.streetName ?? scopeLabel}
                   highlightBoundary={singleHighlight}
                   districtOverlays={districtOverlays}
+                  showHoverBoundary
                   height="100%"
                 />
               )}
