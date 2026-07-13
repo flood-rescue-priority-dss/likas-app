@@ -51,7 +51,6 @@ export default function FloodRecordsDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<FloodIncident | null>(null);
-  const [showPrioInfo, setShowPrioInfo] = useState(false);
 
   // ── Lightbox state ────────────────────────────────────────────────────────
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -248,7 +247,8 @@ export default function FloodRecordsDetailPage() {
       header: 'Location',    
       render: (r: FloodIncident) => <span className="font-semibold text-gray-800">{r.street}</span>,
       sticky: true,
-      sortable: true
+      sortable: true,
+      className: 'min-w-[200px] w-[24%]'
     },
     { key: 'date',   header: 'Date',        render: (r: FloodIncident) => r.date, sortable: true },
     { key: 'time',   header: 'Time',        render: (r: FloodIncident) => r.time, sortable: true },
@@ -341,17 +341,7 @@ export default function FloodRecordsDetailPage() {
       <div className="p-4 sm:p-6 lg:p-10">
         {/* Page header */}
         <PageHeader
-          title={
-            <div className="flex items-center gap-3">
-              <span>FLOOD RECORDS</span>
-              <button 
-                onClick={() => setShowPrioInfo(true)}
-                className="text-gray-400 hover:text-indigo-600 transition-colors"
-              >
-                <Info size={18} />
-              </button>
-            </div>
-          }
+          title="FLOOD RECORDS"
           titleUppercase
           action={
             <div className="relative group">
@@ -681,34 +671,6 @@ export default function FloodRecordsDetailPage() {
         incidentId={selectedIncident?.id ?? null}
         onDeleted={handleIncidentDeleted}
       />
-
-      <Modal open={showPrioInfo} onClose={() => setShowPrioInfo(false)} title="How is Priority Calculated?" size="md">
-        <div className="text-sm font-inter text-gray-600 space-y-4">
-          <p>
-            The <strong>Priority Level</strong> helps determine which flooded areas need emergency response first. Instead of just looking at how deep the water is, our AI Engine considers both the danger of the flood and the people affected by it.
-          </p>
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <h4 className="font-semibold text-gray-800 mb-2 font-heading">The Three Main Factors:</h4>
-            <code className="text-xs text-indigo-700 bg-indigo-50 px-2 py-1 rounded block mb-3 text-center border border-indigo-100 font-semibold">
-              Priority = Flood Hazard (40%) + Vulnerability (35%) + Exposure (25%)
-            </code>
-            <ul className="list-disc pl-5 space-y-3 text-sm">
-              <li>
-                <strong>Flood Hazard (40%):</strong> How dangerous is the water right now? We look at the actual depth of the flood and how often this specific street gets flooded historically. Deeper and more frequent floods score higher.
-              </li>
-              <li>
-                <strong>Vulnerability (35%):</strong> Who needs help evacuating? This looks at the local demographics. Areas with many Seniors, PWDs, Pregnant Women, and Children get higher priority because they need more physical assistance to safely evacuate.
-              </li>
-              <li>
-                <strong>Exposure (25%):</strong> How crowded is the area? We look at the population density. A flooded street in a highly populated neighborhood will rank higher than a sparsely populated one, because more lives are immediately disrupted.
-              </li>
-            </ul>
-          </div>
-          <p>
-            When a record is marked as <strong>"High"</strong> Priority, it means there is a dangerous flood happening in an area crowded with people who might struggle to evacuate on their own.
-          </p>
-        </div>
-      </Modal>
 
       {/* Attachment Lightbox Modal */}
       {selectedIncident && (

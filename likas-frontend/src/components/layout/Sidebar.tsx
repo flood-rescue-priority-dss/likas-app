@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, CloudRain, Users, Map, UserCircle,
-  LogOut, ListChecks, AlertTriangle, UserCog
+  LogOut, ListChecks, AlertTriangle, UserCog, BarChart2
 } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,7 +17,7 @@ interface NavItem {
   to: string;
   icon: React.ReactNode;
   label: string;
-  children?: { to: string; label: string }[];
+  children?: { to: string; label: string; icon?: React.ReactNode }[];
 }
 
 const navItems: NavItem[] = [
@@ -25,7 +25,10 @@ const navItems: NavItem[] = [
     to: '/dashboard',
     icon: <LayoutDashboard size={20} />,
     label: 'Dashboard',
-    children: [{ to: '/dashboard/priority', label: 'Priority List' }],
+    children: [
+      { to: '/dashboard/priority', label: 'Priority List' },
+      { to: '/dashboard/analytics', icon: <BarChart2 size={18} />, label: 'Analytics' }
+    ],
   },
   { to: '/flood-records', icon: <CloudRain size={20} />, label: 'Flood Records' },
   { to: '/incident-management', icon: <AlertTriangle size={20} />, label: 'Incident Management' },
@@ -203,10 +206,16 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
                     {!childActive && (
                       <span className="absolute inset-0 rounded-l-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-0" />
                     )}
-                    <ListChecks
-                      size={18}
-                      className={`relative flex-shrink-0 transition-colors duration-200 ${childTextColor}`}
-                    />
+                    {child.icon ? (
+                      <span className={`relative flex-shrink-0 transition-colors duration-200 ${childTextColor}`}>
+                        {child.icon}
+                      </span>
+                    ) : (
+                      <ListChecks
+                        size={18}
+                        className={`relative flex-shrink-0 transition-colors duration-200 ${childTextColor}`}
+                      />
+                    )}
                     {expanded && (
                       <span className={`relative font-heading text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${childTextColor}`}>
                         {child.label}

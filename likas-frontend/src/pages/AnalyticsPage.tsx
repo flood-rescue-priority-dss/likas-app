@@ -1,0 +1,247 @@
+import { useEffect, useState, useRef } from 'react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+  BarChart, Bar,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+} from 'recharts';
+import { Download, CheckCircle } from 'lucide-react';
+import jsPDF from 'jspdf';
+import { toPng } from 'html-to-image';
+import PageHeader from '../components/ui/PageHeader';
+import Modal from '../components/ui/Modal';
+import { analyticsService } from '../services';
+import type { AnalyticsData } from '../types';
+
+export default function AnalyticsPage() {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const exportToPDF = async () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    try {
+      const imgData = await toPng(reportRef.current, { cacheBust: true, pixelRatio: 2 });
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      // Since html-to-image doesn't return canvas dimensions directly, we use the DOM node dimensions
+      const nodeWidth = reportRef.current.offsetWidth;
+      const nodeHeight = reportRef.current.offsetHeight;
+      const pdfHeight = (nodeHeight * pdfWidth) / nodeWidth;
+      
+      pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+      
+      const pdfBlob = pdf.output('blob');
+      
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: 'Likas_Analytics_Report.pdf',
+            types: [{
+              description: 'PDF Document',
+              accept: {'application/pdf': ['.pdf']},
+            }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(pdfBlob);
+          await writable.close();
+          setShowSuccessModal(true);
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            console.error('File system access error:', err);
+            pdf.save('Likas_Analytics_Report.pdf');
+            setShowSuccessModal(true);
+          }
+        }
+      } else {
+        pdf.save('Likas_Analytics_Report.pdf');
+        setShowSuccessModal(true);
+      }
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  useEffect(() => {
+    analyticsService.getAnalytics()
+      .then(res => {
+        setData(res);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setError(true);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-100px)]">
+        <div className="spinner-dark" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-100px)] flex-col gap-4">
+        <div className="text-red-500 font-inter">Failed to load analytics data.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-10">
+      <PageHeader
+        title="ANALYTICS & REPORTS"
+        breadcrumbs={[{ label: 'Historical insights and flood patterns', muted: true }]}
+        action={
+          <button
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1B75BC] hover:bg-blue-700 text-white font-inter text-sm font-semibold rounded-lg shadow-sm transition-all disabled:opacity-70"
+          >
+            {isExporting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={18} />}
+            {isExporting ? 'Generating PDF...' : 'Download PDF Report'}
+          </button>
+        }
+      />
+
+      <div ref={reportRef} className="bg-[#F0F4F7] -m-4 p-4 lg:-m-10 lg:p-10 rounded-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* 1. Flood Trends Over Time */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+          <h2 className="font-heading font-semibold text-gray-800 text-base mb-2">Flood Trends Over Time</h2>
+          <p className="text-xs text-gray-500 font-inter mb-6">Historical frequency of incidents to visualize seasonal peaks.</p>
+          <div className="flex-1 min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data.trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorIncidents" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1B75BC" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#1B75BC" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}
+                  itemStyle={{ fontFamily: 'Inter', fontSize: '14px' }}
+                />
+                <Area type="monotone" dataKey="incidents" stroke="#1B75BC" strokeWidth={3} fillOpacity={1} fill="url(#colorIncidents)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 2. Primary Causes of Flooding */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+          <h2 className="font-heading font-semibold text-gray-800 text-base mb-2">Primary Causes of Flooding</h2>
+          <p className="text-xs text-gray-500 font-inter mb-6">Breakdown of incidents to pinpoint infrastructure vs. natural causes.</p>
+          <div className="flex-1 min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data.causes}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {data.causes.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}
+                  itemStyle={{ fontFamily: 'Inter', fontSize: '14px' }}
+                />
+                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontFamily: 'Inter', fontSize: '12px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 3. Priority Distribution */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+          <h2 className="font-heading font-semibold text-gray-800 text-base mb-2">Priority Distribution</h2>
+          <p className="text-xs text-gray-500 font-inter mb-6">Percentage of critical vs. manageable flood zones.</p>
+          <div className="flex-1 min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.priorities} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <YAxis dataKey="priority" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#374151', fontWeight: 500 }} />
+                <RechartsTooltip 
+                  cursor={{ fill: '#f9fafb' }}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}
+                />
+                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                  {data.priorities.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.priority === 'High' ? '#ef4444' : entry.priority === 'Medium' ? '#f59e0b' : '#10b981'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 4. Time of Day Analysis */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
+          <h2 className="font-heading font-semibold text-gray-800 text-base mb-2">Time of Day Analysis</h2>
+          <p className="text-xs text-gray-500 font-inter mb-6">When floods are most likely to occur for emergency rescue deployment.</p>
+          <div className="flex-1 min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data.timeOfDay}>
+                <PolarGrid stroke="#e5e7eb" />
+                <PolarAngleAxis dataKey="period" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <PolarRadiusAxis angle={30} domain={[0, 'dataMax']} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                <Radar name="Incidents" dataKey="count" stroke="#1B75BC" fill="#1B75BC" fillOpacity={0.4} />
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+          </div>
+        </div>
+      </div>
+      
+      <Modal
+        open={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Export Successful"
+        size="sm"
+      >
+        <div className="flex flex-col items-center justify-center py-4">
+          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4 text-green-500">
+            <CheckCircle size={32} />
+          </div>
+          <h3 className="font-heading font-bold text-gray-900 text-lg mb-2">PDF Saved!</h3>
+          <p className="text-gray-500 font-inter text-sm text-center mb-6 px-4">
+            The analytics report has been successfully downloaded and saved to your computer.
+          </p>
+          <button
+            onClick={() => setShowSuccessModal(false)}
+            className="w-full py-2.5 bg-[#1B75BC] hover:bg-blue-700 text-white font-heading font-semibold text-sm rounded-xl transition-colors shadow-sm"
+          >
+            Done
+          </button>
+        </div>
+      </Modal>
+    </div>
+  );
+}

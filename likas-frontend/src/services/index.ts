@@ -3,7 +3,7 @@ import type {
   FloodIncident, RecurrenceHotspot,
   StreetVulnerability, BarangayVulnerability,
   StreetRegistryEntry, PriorityItem,
-  DashboardSummary, Priority,
+  DashboardSummary, Priority, AnalyticsData
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -277,4 +277,8 @@ export const priorityService = {
   async getPriorityList(filter: Priority | 'All' = 'All'): Promise<PriorityItem[]> {
     return fetchApi<PriorityItem[]>(`/priority?filter=${filter}`);
   },
+};
+
+export const analyticsService = {
+  getAnalytics: (): Promise<AnalyticsData> => fetchApi<AnalyticsData>('/analytics'),
 };
