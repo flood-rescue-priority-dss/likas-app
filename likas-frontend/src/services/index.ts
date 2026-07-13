@@ -155,7 +155,7 @@ export const floodService = {
   async getPendingApprovals(): Promise<FloodIncident[]> {
     return fetchApi<FloodIncident[]>('/flood?approvalStatus=Pending');
   },
-  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole' | 'approvalStatus'>, force: boolean = false): Promise<FloodIncident> {
+  async createFloodIncident(incident: Omit<FloodIncident, 'id' | 'loggedByRole' | 'approvalStatus' | 'loggedByEmail'>, force: boolean = false): Promise<FloodIncident> {
     return fetchApi<FloodIncident>(`/flood/${incident.barangayId}`, {
       method: 'POST',
       body: JSON.stringify({ ...incident, force })
