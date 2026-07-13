@@ -65,17 +65,56 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="flex-1 bg-[#F0F4F7] flex items-center justify-center p-8">
-        <div className="w-full max-w-[420px]">
-          {/* Mobile logo */}
-          <div className="md:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-[#050A30] rounded-full flex items-center justify-center">
-              <span className="text-white font-heading font-bold">L</span>
+      {/* Right panel
+          Desktop: plain gray bg, card centered.
+          Mobile:  full dark photo background (same as desktop left panel),
+                   card floats over it centered — same fixed width, same
+                   rounded/shadow treatment, just on dark instead of gray.   */}
+      <div
+        className="flex-1 flex items-center justify-center p-8
+                   bg-[#F0F4F7]
+                   md:bg-[#F0F4F7]
+                   max-md:bg-[#050A30] max-md:bg-cover max-md:bg-center max-md:relative"
+        style={{ backgroundImage: undefined }}
+      >
+        {/* Mobile-only: photo + dark overlay sitting behind the card */}
+        <div
+          className="md:hidden absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${floodBg})` }}
+        />
+        <div className="md:hidden absolute inset-0 bg-[#050A30]/80" />
+
+        <div className="relative z-10 w-full max-w-[420px]">
+
+          {/* ── Mobile-only: compact branding block above the card ────────── */}
+          <div className="md:hidden mb-6">
+            <div className="bg-white/10 rounded-2xl border border-white/10 backdrop-blur-xs px-6 py-5 flex flex-col items-start gap-4">
+              {/* Logos */}
+              <div className="flex flex-row gap-3">
+                <div
+                  className="w-16 h-16 rounded-full bg-white shadow-xl bg-cover bg-center flex-shrink-0"
+                  style={{ backgroundImage: `url(${mdrrmdLogo})` }}
+                />
+                <div
+                  className="w-16 h-16 rounded-full bg-cover bg-center flex-shrink-0 shadow-2xl"
+                  style={{ backgroundImage: `url(${likasLogo})` }}
+                />
+              </div>
+              {/* Text */}
+              <div>
+                <h1 className="text-white font-heading font-bold text-4xl tracking-wide leading-none">LIKAS</h1>
+                <p className="text-white/75 font-inter text-base leading-snug mt-1">
+                  A Flood Vulnerability Decision Support System
+                </p>
+                <p className="text-white font-inter font-semibold text-base mt-2">City of Manila</p>
+                <p className="text-white/65 font-inter text-sm leading-snug">
+                  Disaster Risk Reduction and Management Department
+                </p>
+              </div>
             </div>
-            <span className="font-heading font-bold text-[#050A30] text-2xl">LIKAS</span>
           </div>
 
+          {/* ── Form card — unchanged from original ──────────────────────── */}
           <div className="cursor-default bg-white rounded-3xl shadow-sm border border-gray-100 p-10">
             <div className="mb-8 flex flex-col items-center text-center">
               <h2 className="font-heading font-bold text-gray-900 text-2xl">Welcome Back</h2>
@@ -132,10 +171,10 @@ export default function LoginPage() {
                 id="login-submit"
                 type="submit"
                 disabled={loading}
-                  className="group relative w-full py-3.5 bg-[#050A30] disabled:opacity-60 text-white font-heading font-bold text-sm rounded-xl transition-all duration-200 mt-2 shadow-sm hover:shadow-md overflow-hidden"
+                className="group relative w-full py-3.5 bg-[#050A30] disabled:opacity-60 text-white font-heading font-bold text-sm rounded-xl transition-all duration-200 mt-2 shadow-sm hover:shadow-md overflow-hidden"
               >
                 <span className="absolute inset-0 flex items-center justify-center">
-                  <span className="w-0 h-0 rounded-full bg-white/20 group-hover:w-[400px] group-hover:h-[300px] transition-all duration-300 group-hover:shadow group-hover:s ease-out" />
+                  <span className="w-0 h-0 rounded-full bg-white/20 group-hover:w-[400px] group-hover:h-[300px] transition-all duration-300 ease-out" />
                 </span>
                 <span className="relative z-10">
                   {loading ? 'Signing in...' : 'LOGIN'}
@@ -155,6 +194,7 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
