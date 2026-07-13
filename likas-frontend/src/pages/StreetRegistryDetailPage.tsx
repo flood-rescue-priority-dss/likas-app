@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Map, TrendingUp, Shield } from 'lucide-react';
+import { Map, TrendingUp, Shield, Info } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -8,6 +8,7 @@ import type { Column } from '../components/ui/DataTable';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import MapPreview from '../components/ui/MapPreview';
 import type { DistrictOverlay } from '../components/ui/MapPreview';
+import Modal from '../components/ui/Modal';
 import SearchInput from '../components/ui/SearchInput';
 import DropdownSelect from '../components/ui/DropdownSelect';
 import { streetService, geoService } from '../services';
@@ -44,6 +45,9 @@ export default function StreetRegistryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [selectedStreet, setSelectedStreet] = useState<StreetRegistryEntry | null>(null);
   const [tableSearch, setTableSearch] = useState('');
+  const [showFloodInfo, setShowFloodInfo] = useState(false);
+  const [showVulnInfo, setShowVulnInfo] = useState(false);
+  const [showPrioInfo, setShowPrioInfo] = useState(false);
 
   // ── Load geography dropdowns on mount (admin only) ────────────────────────
   useEffect(() => {
@@ -136,15 +140,36 @@ export default function StreetRegistryDetailPage() {
     { key: 'streetName', header: 'Location', sticky: true, sortable: true, render: r => (
       <span className="font-semibold text-gray-800">{r.streetName}</span>
     )},
-    { key: 'floodLevel', header: 'Flood Level', sortable: true, sortAccessor: r => r.priorityScore, render: r => {
+    { key: 'floodLevel', sortable: true, sortAccessor: r => r.priorityScore, header: (
+      <div className="flex items-center gap-1.5">
+        Flood Hazard
+        <button onClick={(e) => { e.stopPropagation(); setShowFloodInfo(true); }} className="text-gray-400 hover:text-blue-500 transition-colors">
+          <Info size={14} />
+        </button>
+      </div>
+    ), render: r => {
       const level = getFloodLevel(r.priorityScore);
       return <PriorityBadge priority={level as any} size="sm" />;
     }},
-    { key: 'vulnerabilityScore', header: 'Vulnerability', sortable: true, sortAccessor: r => r.vulnerabilityScore, render: r => {
+    { key: 'vulnerabilityScore', sortable: true, sortAccessor: r => r.vulnerabilityScore, header: (
+      <div className="flex items-center gap-1.5">
+        Vulnerability
+        <button onClick={(e) => { e.stopPropagation(); setShowVulnInfo(true); }} className="text-gray-400 hover:text-blue-500 transition-colors">
+          <Info size={14} />
+        </button>
+      </div>
+    ), render: r => {
       const vulnLevel = getFloodLevel(r.vulnerabilityScore);
       return <PriorityBadge priority={vulnLevel as any} size="sm" />;
     }},
-    { key: 'priority', header: 'Priority', sortable: true, sortAccessor: r => (r.priority === 'High' ? 3 : r.priority === 'Medium' ? 2 : r.priority === 'Low' ? 1 : 0), render: r => <PriorityBadge priority={r.priority} size="sm" /> },
+    { key: 'priority', sortable: true, sortAccessor: r => (r.priority === 'High' ? 3 : r.priority === 'Medium' ? 2 : r.priority === 'Low' ? 1 : 0), header: (
+      <div className="flex items-center gap-1.5">
+        Priority
+        <button onClick={(e) => { e.stopPropagation(); setShowPrioInfo(true); }} className="text-gray-400 hover:text-blue-500 transition-colors">
+          <Info size={14} />
+        </button>
+      </div>
+    ), render: r => <PriorityBadge priority={r.priority} size="sm" /> },
     { key: 'lastUpdated', header: 'Last Updated', sortable: true, render: r => (
       <span className="text-gray-500 text-xs">{r.lastUpdated ? r.lastUpdated.split('T')[0] : 'N/A'}</span>
     )},
@@ -410,6 +435,54 @@ export default function StreetRegistryDetailPage() {
           </div>
         </div>
       </div>
+      <Modal open={showFloodInfo} onClose={() => setShowFloodInfo(false)} title="Flood Hazard Computation" size="sm">
+        <div className="text-sm font-inter text-gray-600 space-y-3">
+          <p>
+            The Flood Hazard level is determined by mathematically analyzing historical flood reports on this street.
+          </p>
+          <div className="bg-sky-50 p-3 rounded-lg border border-sky-100">
+            <h4 className="font-semibold text-gray-800 mb-1 text-xs uppercase tracking-wider">Hazard Weights:</h4>
+            <ul className="space-y-1 text-xs font-medium">
+              <li>• Flood Severity (Depth): <span className="text-blue-700">70%</span></li>
+              <li>• Historical Frequency: <span className="text-blue-700">30%</span></li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showVulnInfo} onClose={() => setShowVulnInfo(false)} title="Vulnerability Index" size="sm">
+        <div className="text-sm font-inter text-gray-600 space-y-3">
+          <p>
+            The Vulnerability Score is computed per capita, normalized on a 0-100 scale, based on the street's demographic profile.
+          </p>
+          <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
+            <h4 className="font-semibold text-gray-800 mb-1 text-xs uppercase tracking-wider">Demographic Weights:</h4>
+            <ul className="space-y-1 text-xs font-medium">
+              <li>• Seniors: <span className="text-purple-700">35%</span></li>
+              <li>• PWDs: <span className="text-purple-700">35%</span></li>
+              <li>• Pregnant: <span className="text-purple-700">20%</span></li>
+              <li>• Children: <span className="text-purple-700">10%</span></li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showPrioInfo} onClose={() => setShowPrioInfo(false)} title="Priority Computation" size="md">
+        <div className="text-sm font-inter text-gray-600 space-y-4">
+          <p>
+            The final Priority Level is calculated using the Hybrid ML Engine that balances the natural hazard with the human impact factor.
+          </p>
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <h4 className="font-semibold text-gray-800 mb-2 font-heading">Calculation Formula:</h4>
+            <code className="text-xs text-indigo-700 bg-indigo-50 px-2 py-1 rounded block mb-2">Priority = Vulnerability + Flood Hazard + Exposure</code>
+            <ul className="list-disc pl-5 space-y-1 text-xs">
+              <li><strong>Vulnerability (35%):</strong> Evaluates the at-risk demographics.</li>
+              <li><strong>Flood Hazard (40%):</strong> Assesses the real-time reported depth and historical frequency.</li>
+              <li><strong>Exposure (25%):</strong> Evaluates population density (Barangay Population relative to Total City Population).</li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

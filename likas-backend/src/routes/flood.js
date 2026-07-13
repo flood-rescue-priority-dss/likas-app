@@ -47,7 +47,9 @@ router.get('/', verifyToken, async (req, res) => {
              TO_CHAR(f.incident_time, 'HH24:MI') AS "time", f.street, f.depth_inches AS "depthInches", 
              f.status, f.cause, f.priority, f.logged_by_role AS "loggedByRole",
              f.logged_by_email AS "loggedByEmail",
-             f.approval_status AS "approvalStatus", b.name AS "barangayName"
+             f.approval_status AS "approvalStatus", b.name AS "barangayName",
+             f.vulnerability_class AS "vulnerabilityClass", f.hazard_class AS "hazardClass",
+             f.priority_source AS "prioritySource"
       FROM flood_incidents f
       JOIN barangays b ON f.barangay_id = b.id
       JOIN cities c ON b.city_id = c.id
@@ -92,11 +94,7 @@ router.get('/', verifyToken, async (req, res) => {
     query += ' ORDER BY f.incident_date DESC, f.incident_time DESC';
     
     const { rows } = await pool.query(query, params);
-
-    // Dates and times are now pre-formatted correctly by PostgreSQL
-    const formattedRows = rows;
-
-    res.json(formattedRows);
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -117,26 +115,20 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
               TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
               status, cause, priority, logged_by_role AS "loggedByRole",
               logged_by_email AS "loggedByEmail",
-              approval_status AS "approvalStatus"
+              approval_status AS "approvalStatus",
+              vulnerability_class AS "vulnerabilityClass", hazard_class AS "hazardClass",
+              priority_source AS "prioritySource"
        FROM flood_incidents 
        WHERE barangay_id = $1`,
       [actualBarangayId]
     );
-
-    // Dates and times are now pre-formatted correctly by PostgreSQL
-    const formattedRows = rows;
-
-    res.json(formattedRows);
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Thresholds per DPWH/MDRRMD road-passability classification:
-// PATV  (Passable to All Types of Vehicles):        depth <= 8 in
-// NPLV  (Not Passable to Light Vehicles):            9 in <= depth <= 19 in
-// NPATV (Not Passable to All Types of Vehicles):     depth >= 20 in
 function calcStatus(depthInches) {
   const depth = Number(depthInches);
   if (depth >= 20) return 'NPATV';
@@ -151,6 +143,61 @@ function calcPriority(depthInches) {
   return 'Low';
 }
 
+// HYBRID ENGINE INTEGRATION
+async function getHybridScore(pool, barangayId, depthInches, status, cause) {
+  try {
+    const bRes = await pool.query(
+      'SELECT population, elderly, pwd, pregnant, children, district_id FROM barangays WHERE id = $1',
+      [barangayId]
+    );
+    if (bRes.rows.length === 0) throw new Error('Barangay not found');
+    const b = bRes.rows[0];
+
+    const cityRes = await pool.query('SELECT SUM(population) as total FROM barangays');
+    const totalCityPop = parseInt(cityRes.rows[0].total, 10);
+
+    const freqRes = await pool.query(
+      'SELECT COUNT(*) as cnt FROM flood_incidents WHERE barangay_id = $1',
+      [barangayId]
+    );
+    const freqCount = parseInt(freqRes.rows[0].cnt, 10) + 1; // +1 for the new incident being logged
+
+    const response = await fetch('http://127.0.0.1:8000/api/score/priority', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        flood_depth_inches: Number(depthInches),
+        status: status,
+        cause: cause,
+        frequency_count: freqCount,
+        population: b.population,
+        elderly: b.elderly,
+        pwd: b.pwd,
+        pregnant: b.pregnant,
+        children: b.children,
+        total_city_population: totalCityPop,
+        district_id: b.district_id || '1'
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('Python API Error:', await response.text());
+      throw new Error('Python API request failed');
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.error('Error getting hybrid score:', err);
+    // Fallback to old system if Python is down
+    return {
+      vulnerability_class: 'Medium',
+      hazard_class: 'Medium',
+      priority_class: calcPriority(depthInches),
+      priority_source: 'formula_old'
+    };
+  }
+}
+
 router.post('/:barangayId', verifyToken, async (req, res) => {
   const actualBarangayId = await resolveActualBarangayId(pool, req.params.barangayId, req.user);
   const userActualBarangayId = await resolveActualBarangayId(pool, req.user.id, req.user);
@@ -162,12 +209,17 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
   try {
     const newId = `fi-${Date.now()}`;
     const { date, time, street, depthInches, cause, force } = req.body;
-    // status and priority are derived from depthInches server-side — never trust client-supplied values
+    
     const status = calcStatus(depthInches);
-    const priority = calcPriority(depthInches);
-    // Role is read exclusively from the verified JWT — cannot be spoofed by the client
+    
+    // CALL PYTHON ML API
+    const mlData = await getHybridScore(pool, actualBarangayId, depthInches, status, cause);
+    const priority = mlData.priority_class;
+    const vulnerabilityClass = mlData.vulnerability_class;
+    const hazardClass = mlData.hazard_class;
+    const prioritySource = mlData.priority_source;
+    
     const loggedByRole = req.user.role;
-    // Default approval_status: admin logs are auto-approved, barangay logs are pending
     const approvalStatus = loggedByRole === 'admin' ? 'Approved' : 'Pending';
 
     // Get the authenticated user's email from the database
@@ -178,7 +230,6 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
     const loggedByEmail = userRes.rows[0].registered_email;
 
     if (!force) {
-      // Check for exact match (duplicate data)
       const { rows: existing } = await pool.query(
         `SELECT id FROM flood_incidents 
          WHERE barangay_id = $1 AND street = $2 AND incident_date = $3 AND incident_time = $4`,
@@ -192,12 +243,15 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
 
     await pool.query(
       `INSERT INTO flood_incidents 
-       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, logged_by_email, approval_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-      [newId, actualBarangayId, date, time, street, depthInches, status, cause, priority, loggedByRole, loggedByEmail, approvalStatus]
+       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, logged_by_email, approval_status, vulnerability_class, hazard_class, priority_source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      [newId, actualBarangayId, date, time, street, depthInches, status, cause, priority, loggedByRole, loggedByEmail, approvalStatus, vulnerabilityClass, hazardClass, prioritySource]
     );
 
-    res.status(201).json({ id: newId, barangayId: actualBarangayId, loggedByRole, loggedByEmail, approvalStatus, ...req.body, status, priority });
+    res.status(201).json({ 
+        id: newId, barangayId: actualBarangayId, loggedByRole, loggedByEmail, approvalStatus, ...req.body, 
+        status, priority, vulnerabilityClass, hazardClass, prioritySource 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -213,9 +267,6 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
   }
 
   try {
-    // Generate hotspots dynamically from flood_incidents for the barangay
-    // If none exist for this specific barangay, we fallback to a city-wide generic query or static for demo purposes.
-    // For now, let's query the specific barangay
     const { rows } = await pool.query(
       `SELECT 
          street, 
@@ -232,7 +283,6 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
        [actualBarangayId]
     );
 
-    // The frontend chart expects segments to add up to 100 roughly, the above query does that.
     res.json(rows.map(r => ({
       street: r.street,
       eventCount: parseInt(r.eventCount, 10),
@@ -247,7 +297,6 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
   }
 });
 
-// PUT /flood/incident/:incidentId - Update flood incident (admin only)
 router.put('/incident/:incidentId', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -257,34 +306,47 @@ router.put('/incident/:incidentId', verifyToken, async (req, res) => {
     const { incidentId } = req.params;
     const { date, time, street, depthInches, cause } = req.body;
 
-    // Recalculate status and priority from the (possibly edited) depth
     const status = calcStatus(depthInches);
-    const priority = calcPriority(depthInches);
+    
+    // Need barangayId to call Python ML
+    const incRes = await pool.query('SELECT barangay_id FROM flood_incidents WHERE id = $1', [incidentId]);
+    if (incRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+    const bId = incRes.rows[0].barangay_id;
+    
+    // CALL PYTHON ML API
+    const mlData = await getHybridScore(pool, bId, depthInches, status, cause);
+    const priority = mlData.priority_class;
+    const vulnerabilityClass = mlData.vulnerability_class;
+    const hazardClass = mlData.hazard_class;
+    const prioritySource = mlData.priority_source;
 
     const { rows } = await pool.query(
       `UPDATE flood_incidents 
        SET incident_date = $1, incident_time = $2, street = $3, 
-           depth_inches = $4, cause = $5, priority = $6, status = $7
-       WHERE id = $8
+           depth_inches = $4, cause = $5, priority = $6, status = $7,
+           vulnerability_class = $8, hazard_class = $9, priority_source = $10
+       WHERE id = $11
        RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
                  TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
-                 status, cause, priority, logged_by_role AS "loggedByRole", logged_by_email AS "loggedByEmail"`,
-      [date, time, street, depthInches, cause, priority, status, incidentId]
+                 status, cause, priority, logged_by_role AS "loggedByRole", logged_by_email AS "loggedByEmail",
+                 vulnerability_class AS "vulnerabilityClass", hazard_class AS "hazardClass",
+                 priority_source AS "prioritySource"`,
+      [date, time, street, depthInches, cause, priority, status, vulnerabilityClass, hazardClass, prioritySource, incidentId]
     );
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Incident not found' });
     }
 
-    const updated = rows[0];
-    res.json(updated);
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// DELETE /flood/incident/:incidentId - Delete flood incident (admin only, password verified)
 router.delete('/incident/:incidentId', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -309,7 +371,6 @@ router.delete('/incident/:incidentId', verifyToken, async (req, res) => {
   }
 });
 
-// POST /flood/incident/:incidentId/approve - Approve pending incident (admin only)
 router.post('/incident/:incidentId/approve', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -333,15 +394,13 @@ router.post('/incident/:incidentId/approve', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Incident not found' });
     }
 
-    const approved = rows[0];
-    res.json(approved);
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// POST /flood/incident/:incidentId/reject - Reject pending incident (admin only)
 router.post('/incident/:incidentId/reject', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -365,8 +424,7 @@ router.post('/incident/:incidentId/reject', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Incident not found' });
     }
 
-    const rejected = rows[0];
-    res.json(rejected);
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
