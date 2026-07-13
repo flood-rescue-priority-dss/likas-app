@@ -33,7 +33,7 @@ router.get('/', verifyToken, async (req, res) => {
                sr.priority_score AS "priorityScore", sr.vulnerability_score AS "vulnerabilityScore",
                CASE WHEN sr.priority = 'Very High' THEN 'High' ELSE sr.priority END AS priority,
                sr.flood_count AS "floodCount", sr.last_updated AS "lastUpdated",
-               sr.lat, sr.lng
+               sr.lat, sr.lng, sr.priority_source AS "prioritySource"
         FROM street_registry sr
         JOIN barangays b ON sr.barangay_id = b.id
         WHERE 1=1

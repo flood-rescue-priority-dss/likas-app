@@ -6285,6 +6285,13 @@ const BARANGAY_RECORDS = [
     "districtName": "District 2",
     "lat": 14.612564,
     "lng": 120.977078
+  },
+  {
+    "barangayName": "Barangay 128",
+    "areaName": "Tondo I",
+    "districtName": "District 1",
+    "lat": 14.6323,
+    "lng": 120.9524
   }
 ];
 

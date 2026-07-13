@@ -83,10 +83,10 @@ router.get('/barangays', verifyToken, async (req, res) => {
   try {
     let query = `
       SELECT b.id, b.city_id AS "cityId", b.name, b.population,
-             COALESCE(SUM(sv.pwd), 0) AS pwd,
-             COALESCE(SUM(sv.elderly), 0) AS elderly,
-             COALESCE(SUM(sv.children), 0) AS children,
-             COALESCE(SUM(sv.pregnant), 0) AS pregnant,
+             b.pwd,
+             b.elderly,
+             b.children,
+             b.pregnant,
              MAX(sv.last_updated) AS "lastUpdated"
       FROM barangays b
       LEFT JOIN street_vulnerabilities sv ON b.id = sv.barangay_id
@@ -99,7 +99,7 @@ router.get('/barangays', verifyToken, async (req, res) => {
       params.push(actualBarangayId);
     }
 
-    query += ` GROUP BY b.id, b.city_id, b.name, b.population `;
+    query += ` GROUP BY b.id, b.city_id, b.name, b.population, b.pwd, b.elderly, b.children, b.pregnant `;
 
     const { rows } = await pool.query(query, params);
     

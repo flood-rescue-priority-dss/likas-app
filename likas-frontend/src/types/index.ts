@@ -58,8 +58,11 @@ export interface FloodIncident {
   cause: FloodCause;
   priority: Priority;
   loggedByRole: UserRole;
-  loggedByEmail: string;
+  loggedByEmail?: string;
   approvalStatus?: ApprovalStatus;
+  prioritySource?: string;
+  vulnerabilityClass?: string;
+  hazardClass?: string;
 }
 
 export interface RecurrenceHotspot {
@@ -108,6 +111,7 @@ export interface StreetRegistryEntry {
   lastUpdated: string;
   lat: number;
   lng: number;
+  prioritySource?: string;
 }
 
 // ─── Priority List ────────────────────────────────────────────────────────────
@@ -123,6 +127,7 @@ export interface PriorityItem {
   floodCount: number;
   lat: number;
   lng: number;
+  prioritySource?: string;
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

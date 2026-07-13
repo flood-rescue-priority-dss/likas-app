@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import PageHeader from '../components/ui/PageHeader';
-import { Eye, Map as MapIcon, AlertTriangle } from 'lucide-react';
+import { Eye, Map as MapIcon, AlertTriangle, Info } from 'lucide-react';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import Modal from '../components/ui/Modal';
 import MapPreview from '../components/ui/MapPreview';
@@ -20,6 +20,8 @@ export default function PriorityListPage() {
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<PriorityItem | null>(null);
   const [streetFloods, setStreetFloods] = useState<FloodIncident[]>([]);
   const [loadingFloods, setLoadingFloods] = useState(false);
+  const [showPrioInfo, setShowPrioInfo] = useState(false);
+  const [showVulnInfo, setShowVulnInfo] = useState(false);
 
   useEffect(() => {
     if (selectedMapItem && selectedMapItem.barangayId) {
@@ -65,7 +67,7 @@ export default function PriorityListPage() {
     { key: 'rank', header: 'Rank', render: (r: any) => <div className="text-center">{r.rank}</div>, className: 'w-20', sortable: true, sortAccessor: (r: any) => r.rank },
     { key: 'barangay', header: 'Barangay', render: (r: any) => r.barangay.replace(/Barangay /i, ''), className: 'w-32', sortable: true },
     { key: 'streetName', header: 'Location', render: (r: any) => <span className="font-medium text-gray-900">{r.streetName}</span>, sortable: true },
-    { key: 'priority', header: 'Priority Level', render: (r: any) => <div className="flex justify-center"><PriorityBadge priority={r.priority} size="sm" /></div>, className: 'w-28', sortable: true, sortAccessor: (r: any) => (r.priority === 'High' ? 3 : r.priority === 'Medium' ? 2 : r.priority === 'Low' ? 1 : 0) },
+    { key: 'priority', header: 'Priority Level', render: (r: any) => <div className="flex justify-center"><PriorityBadge priority={r.priority} size="sm" /></div>, className: 'w-32', sortable: true, sortAccessor: (r: any) => (r.priority === 'High' ? 3 : r.priority === 'Medium' ? 2 : r.priority === 'Low' ? 1 : 0) },
     { key: 'action', header: <div className="text-center">Action</div>, render: (r: any) => (
       <div className="flex justify-center gap-2">
         <button 
@@ -82,7 +84,20 @@ export default function PriorityListPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-10">
       <PageHeader
-        title="PRIORITY LIST"
+        title={
+          <div className="flex items-center gap-3">
+            <span>PRIORITY LIST</span>
+            <span className="text-[11px] bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded uppercase font-bold tracking-wider flex items-center">
+              AI-POWERED
+            </span>
+            <button 
+              onClick={() => setShowPrioInfo(true)}
+              className="text-gray-400 hover:text-indigo-600 transition-colors"
+            >
+              <Info size={18} />
+            </button>
+          </div>
+        }
         titleUppercase
         search={{ value: search, onChange: setSearch, placeholder: 'Search streets...' }}
       />
@@ -145,8 +160,13 @@ export default function PriorityListPage() {
                 <span className="font-inter text-[11px] text-gray-500 uppercase font-semibold mb-0.5">Priority Score</span>
                 <span className="font-heading text-lg font-bold text-[#C62828]">{selectedMapItem.priorityScore?.toFixed(2)}</span>
               </div>
-              <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-3 flex flex-col items-center justify-center text-center">
-                <span className="font-inter text-[11px] text-gray-500 uppercase font-semibold mb-0.5">Vulnerability</span>
+              <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-3 flex flex-col items-center justify-center text-center relative group">
+                <span className="font-inter text-[11px] text-gray-500 uppercase font-semibold mb-0.5 flex items-center gap-1">
+                  Vulnerability
+                  <button onClick={() => setShowVulnInfo(true)} className="text-gray-400 hover:text-blue-500 transition-colors">
+                    <Info size={12} />
+                  </button>
+                </span>
                 <span className="font-heading text-lg font-bold text-gray-700">{selectedMapItem.vulnerabilityScore?.toFixed(2)}</span>
               </div>
               <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-3 flex flex-col items-center justify-center text-center">
@@ -201,6 +221,40 @@ export default function PriorityListPage() {
         onClose={() => setSelectedHistoryItem(null)}
         item={selectedHistoryItem}
       />
+
+      <Modal open={showPrioInfo} onClose={() => setShowPrioInfo(false)} title="Priority Computation" size="md">
+        <div className="text-sm font-inter text-gray-600 space-y-4">
+          <p>
+            The Priority Score determines the ranking of streets during flood incidents. It is calculated using an advanced Hybrid ML Engine that combines historical vulnerability data with real-time hazard severity.
+          </p>
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <h4 className="font-semibold text-gray-800 mb-2 font-heading">Calculation Formula:</h4>
+            <code className="text-xs text-indigo-700 bg-indigo-50 px-2 py-1 rounded block mb-2">Priority = Vulnerability + Flood Hazard + Exposure</code>
+            <ul className="list-disc pl-5 space-y-1 text-xs">
+              <li><strong>Vulnerability (35%):</strong> Evaluates the at-risk demographics (Seniors, PWDs, Pregnant, Children).</li>
+              <li><strong>Flood Hazard (40%):</strong> Assesses the real-time reported depth and historical frequency.</li>
+              <li><strong>Exposure (25%):</strong> Evaluates population density (Barangay Population relative to Total City Population).</li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showVulnInfo} onClose={() => setShowVulnInfo(false)} title="Vulnerability Index" size="sm">
+        <div className="text-sm font-inter text-gray-600 space-y-3">
+          <p>
+            The Vulnerability Score is computed per capita, normalized on a 0-100 scale, based on the street's demographic profile.
+          </p>
+          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+            <h4 className="font-semibold text-gray-800 mb-1 text-xs uppercase tracking-wider">Formula Weights:</h4>
+            <ul className="space-y-1 text-xs font-medium">
+              <li>• Seniors: <span className="text-blue-700">35%</span></li>
+              <li>• PWDs: <span className="text-blue-700">35%</span></li>
+              <li>• Pregnant: <span className="text-blue-700">20%</span></li>
+              <li>• Children: <span className="text-blue-700">10%</span></li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

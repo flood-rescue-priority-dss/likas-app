@@ -4,7 +4,7 @@ import SearchInput from './SearchInput';
 interface Crumb { label: string; muted?: boolean }
 
 interface PageHeaderProps {
-  title: string;
+  title: React.ReactNode;
   breadcrumbs?: Crumb[];
   search?: { value: string; onChange: (v: string) => void; placeholder?: string };
   action?: React.ReactNode;
