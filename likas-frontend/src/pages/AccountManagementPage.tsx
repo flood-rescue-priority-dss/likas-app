@@ -489,15 +489,15 @@ export default function AccountManagementPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50/50 text-gray-600 font-heading">
+              <thead className="bg-gray-50/50">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">No.</th>
-                  <th className="px-6 py-4 font-semibold">Barangay Name</th>
-                  <th className="px-6 py-4 font-semibold">Reference ID</th>
-                  <th className="px-6 py-4 font-semibold">Location</th>
-                  <th className="px-6 py-4 font-semibold">Email</th>
-                  <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                  <th className="px-6 py-4 text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">No.</th>
+                  <th className="px-6 py-4 text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Barangay Name</th>
+                  <th className="px-6 py-4 text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Reference ID</th>
+                  <th className="px-6 py-4 text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Location</th>
+                  <th className="px-6 py-4 text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Email</th>
+                  <th className="px-6 py-4 text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-6 py-4 text-xs font-inter font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
