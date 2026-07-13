@@ -227,20 +227,20 @@ export default function PopulationComparisonCard({ initialData = [] }: Props) {
                     cursor={{ fill: '#f1f5f9' }}
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontFamily: 'Inter' }}
                   />
-                  <Bar dataKey="general" stackId="a" fill="#8B5CF6" name="General Population" />
-                  <Bar dataKey="children" stackId="a" fill="#38BDF8" name="Children" />
-                  <Bar dataKey="senior" stackId="a" fill="#F97316" name="Senior" />
-                  <Bar dataKey="pwd" stackId="a" fill="#EAB308" name="PWD" />
-                  <Bar dataKey="pregnant" stackId="a" fill="#EC4899" name="Pregnant Women" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="general" stackId="a" fill="#1E3888" name="General Population" />
+                  <Bar dataKey="children" stackId="a" fill="#47A8BD" name="Children" />
+                  <Bar dataKey="senior" stackId="a" fill="#F5E663" name="Senior" />
+                  <Bar dataKey="pwd" stackId="a" fill="#FFAD69" name="PWD" />
+                  <Bar dataKey="pregnant" stackId="a" fill="#EF476F" name="Pregnant Women" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 px-2 shrink-0">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#8B5CF6]" /><span className="font-inter text-[11px] text-gray-600">General Population</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#38BDF8]" /><span className="font-inter text-[11px] text-gray-600">Children</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#F97316]" /><span className="font-inter text-[11px] text-gray-600">Senior</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EAB308]" /><span className="font-inter text-[11px] text-gray-600">PWD</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EC4899]" /><span className="font-inter text-[11px] text-gray-600">Pregnant Women</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#1E3888]" /><span className="font-inter text-[11px] text-gray-600">General Population</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#47A8BD]" /><span className="font-inter text-[11px] text-gray-600">Children</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#F5E663]" /><span className="font-inter text-[11px] text-gray-600">Senior</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#FFAD69]" /><span className="font-inter text-[11px] text-gray-600">PWD</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-[#EF476F]" /><span className="font-inter text-[11px] text-gray-600">Pregnant Women</span></div>
             </div>
           </div>
         </div>
