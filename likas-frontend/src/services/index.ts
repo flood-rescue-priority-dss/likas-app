@@ -139,14 +139,18 @@ export const floodService = {
   async getFloodRecordsByBarangay(barangayId: string): Promise<FloodIncident[]> {
     return fetchApi<FloodIncident[]>(`/flood/${barangayId}`);
   },
-  async getFloodRecordsFiltered(filters: { districtId?: string; cityId?: string; barangayId?: string; approvalStatus?: string; }): Promise<FloodIncident[]> {
+  async getFloodRecordsFiltered(filters: { districtId?: string; cityId?: string; barangayId?: string; approvalStatus?: string; year?: number; }): Promise<FloodIncident[]> {
     const params = new URLSearchParams();
     if (filters.districtId) params.append('districtId', filters.districtId);
     if (filters.cityId) params.append('cityId', filters.cityId);
     if (filters.barangayId) params.append('barangayId', filters.barangayId);
     if (filters.approvalStatus) params.append('approvalStatus', filters.approvalStatus);
+    if (filters.year) params.append('year', filters.year.toString());
     const query = params.toString();
     return fetchApi<FloodIncident[]>(`/flood${query ? `?${query}` : ''}`);
+  },
+  async getAvailableYears(): Promise<number[]> {
+    return fetchApi<number[]>('/flood/years');
   },
   async getPendingApprovals(): Promise<FloodIncident[]> {
     return fetchApi<FloodIncident[]>('/flood?approvalStatus=Pending');

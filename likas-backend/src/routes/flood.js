@@ -23,8 +23,23 @@ async function resolveActualBarangayId(pool, providedId, reqUser) {
   return providedId;
 }
 
+// GET /flood/years - Get all unique years from flood incidents
+router.get('/years', verifyToken, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT EXTRACT(YEAR FROM incident_date)::INTEGER AS year 
+       FROM flood_incidents 
+       ORDER BY year DESC`
+    );
+    res.json(rows.map(r => r.year));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/', verifyToken, async (req, res) => {
-  const { districtId, cityId, barangayId, approvalStatus } = req.query;
+  const { districtId, cityId, barangayId, approvalStatus, year } = req.query;
   
   try {
     let query = `
@@ -65,6 +80,12 @@ router.get('/', verifyToken, async (req, res) => {
     if (approvalStatus) {
       query += ` AND f.approval_status = $${paramCount}`;
       params.push(approvalStatus);
+      paramCount++;
+    }
+    
+    if (year) {
+      query += ` AND EXTRACT(YEAR FROM f.incident_date) = $${paramCount}`;
+      params.push(year);
       paramCount++;
     }
     
