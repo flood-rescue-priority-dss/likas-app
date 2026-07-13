@@ -87,7 +87,7 @@ router.get('/', verifyToken, async (req, res) => {
              f.logged_by_email AS "loggedByEmail",
              f.approval_status AS "approvalStatus", b.name AS "barangayName",
              f.vulnerability_class AS "vulnerabilityClass", f.hazard_class AS "hazardClass",
-             f.priority_source AS "prioritySource"
+             f.priority_source AS "prioritySource", f.remarks_attachment AS "remarksAttachment"
       FROM flood_incidents f
       JOIN barangays b ON f.barangay_id = b.id
       JOIN cities c ON b.city_id = c.id
@@ -155,7 +155,7 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
               logged_by_email AS "loggedByEmail",
               approval_status AS "approvalStatus",
               vulnerability_class AS "vulnerabilityClass", hazard_class AS "hazardClass",
-              priority_source AS "prioritySource"
+              priority_source AS "prioritySource", remarks_attachment AS "remarksAttachment"
        FROM flood_incidents 
        WHERE barangay_id = $1`,
       [actualBarangayId]

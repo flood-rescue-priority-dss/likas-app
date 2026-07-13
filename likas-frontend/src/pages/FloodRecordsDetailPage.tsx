@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2, Database, Archive, Info } from 'lucide-react';
+import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2, Database, Archive, Info, Eye } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -10,6 +10,7 @@ import DropdownSelect from '../components/ui/DropdownSelect';
 import LogIncidentModal from '../components/modals/LogIncidentModal';
 import EditIncidentModal from '../components/modals/EditIncidentModal';
 import DeleteIncidentModal from '../components/modals/DeleteIncidentModal';
+import AttachmentLightboxModal from '../components/modals/AttachmentLightboxModal';
 import Modal from '../components/ui/Modal';
 import { floodService, geoService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,6 +52,9 @@ export default function FloodRecordsDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<FloodIncident | null>(null);
   const [showPrioInfo, setShowPrioInfo] = useState(false);
+
+  // ── Lightbox state ────────────────────────────────────────────────────────
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // ── Load geography dropdowns on mount (admin only) ────────────────────────
   useEffect(() => {
@@ -226,6 +230,15 @@ export default function FloodRecordsDetailPage() {
     setDeleteOpen(true);
   };
 
+  const handleViewAttachment = (incident: FloodIncident) => {
+    setSelectedIncident(incident);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+  };
+
   // ── Table columns ─────────────────────────────────────────────────────────
   const priorityOrdinal = (p?: string) => (p === 'High' ? 3 : p === 'Medium' ? 2 : p === 'Low' ? 1 : 0);
 
@@ -273,6 +286,15 @@ export default function FloodRecordsDetailPage() {
       header: 'Actions',
       render: (r: FloodIncident) => (
         <div className="flex items-center gap-2">
+          {r.remarksAttachment && (
+            <button
+              onClick={() => handleViewAttachment(r)}
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="View attachment"
+            >
+              <Eye size={16} />
+            </button>
+          )}
           <button
             onClick={() => handleEditClick(r)}
             className="p-1.5 text-gray-600 hover:text-[#1B75BC] hover:bg-blue-50 rounded-lg transition-colors"
@@ -687,6 +709,19 @@ export default function FloodRecordsDetailPage() {
           </p>
         </div>
       </Modal>
+
+      {/* Attachment Lightbox Modal */}
+      {selectedIncident && (
+        <AttachmentLightboxModal
+          isOpen={lightboxOpen}
+          onClose={closeLightbox}
+          imageUrl={selectedIncident.remarksAttachment || ''}
+          date={selectedIncident.date}
+          time={selectedIncident.time}
+          loggedBy={selectedIncident.loggedByEmail || 'Unknown'}
+          street={selectedIncident.street}
+        />
+      )}
     </>
   );
 }
