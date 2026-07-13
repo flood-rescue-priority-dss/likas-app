@@ -7,11 +7,22 @@ import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import PriorityBadge from '../components/ui/PriorityBadge';
 import MapPreview from '../components/ui/MapPreview';
+import type { DistrictOverlay } from '../components/ui/MapPreview';
 import SearchInput from '../components/ui/SearchInput';
 import DropdownSelect from '../components/ui/DropdownSelect';
 import { streetService, geoService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import type { StreetRegistryEntry, District, City, Barangay } from '../types';
+
+// Matches boundaries.json keys exactly; same palette as DashboardPage
+const DISTRICT_COLORS: Record<string, string> = {
+  'District 1': '#3b82f6',
+  'District 2': '#10b981',
+  'District 3': '#f59e0b',
+  'District 4': '#8b5cf6',
+  'District 5': '#ef4444',
+  'District 6': '#ec4899',
+};
 
 
 export default function StreetRegistryDetailPage() {
@@ -169,6 +180,36 @@ export default function StreetRegistryDetailPage() {
   const markerPos: [number, number] | undefined = selectedStreet
     ? [selectedStreet.lat, selectedStreet.lng]
     : undefined;
+
+  // Zoom: street pin → 17, barangay → 16, city → 15, single district → 13, all → 12
+  const mapZoom = selectedStreet ? 17
+    : barangayId !== 'ALL' ? 16
+    : cityId    !== 'ALL' ? 15
+    : districtId !== 'ALL' ? 13
+    : 12;
+
+  // When "All Districts" is selected (admin, no narrower filter), show every
+  // district as a color-coded overlay. For any narrower selection or for
+  // barangay-role users, fall back to a single highlighted boundary.
+  const showAllDistricts =
+    !isBarangay &&
+    !selectedStreet &&
+    districtId === 'ALL' &&
+    cityId     === 'ALL' &&
+    barangayId === 'ALL' &&
+    districts.length > 0;
+
+  const districtOverlays: DistrictOverlay[] | undefined = showAllDistricts
+    ? districts
+        .map(d => ({ name: d.name, color: DISTRICT_COLORS[d.name] ?? '#64748b' }))
+        .filter(o => !!o.color)
+    : undefined;
+
+  const singleHighlight: string | undefined = showAllDistricts
+    ? undefined
+    : isBarangay
+      ? (myBarangayName || undefined)
+      : (selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name);
 
   return (
     <>
@@ -336,14 +377,11 @@ export default function StreetRegistryDetailPage() {
               ) : (
                 <MapPreview
                   center={mapCenter}
-                  zoom={selectedStreet ? 17 : 15}
+                  zoom={mapZoom}
                   markerPosition={markerPos}
                   markerLabel={selectedStreet?.streetName ?? scopeLabel}
-                  highlightBoundary={
-                    isBarangay
-                      ? (myBarangayName || undefined)
-                      : (selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name)
-                  }
+                  highlightBoundary={singleHighlight}
+                  districtOverlays={districtOverlays}
                   height="100%"
                 />
               )}
