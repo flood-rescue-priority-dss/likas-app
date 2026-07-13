@@ -126,7 +126,7 @@ export default function AccountManagementPage() {
       }
 
       // Generate credentials
-      const refNum = formData.office_reference_no.replace(/^(MLA-)?BRGY-/i, '');
+      const refNum = formData.office_reference_no.replace(/^(REF-)?BRGY-/i, '');
       setGeneratedCreds({
         email: `manila.brgy-${refNum}@gov.ph`.toLowerCase(),
         password: Math.random().toString(36).slice(-8).toUpperCase()
@@ -665,7 +665,7 @@ export default function AccountManagementPage() {
                           setFormData({
                             ...formData, 
                             office_name: 'Barangay ' + val,
-                            office_reference_no: 'MLA-BRGY-' + val.toUpperCase().replace(/\s+/g, '')
+                            office_reference_no: 'REF-BRGY-' + val.toUpperCase().replace(/\s+/g, '')
                           });
                         }}
                       />
@@ -676,7 +676,7 @@ export default function AccountManagementPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reference ID <span className="text-red-500">*</span></label>
                     <div className="flex bg-gray-50 border border-gray-200 rounded-lg focus-within:border-[#1B75BC] focus-within:bg-white transition-all overflow-hidden text-sm">
                       <span className="flex items-center pl-4 pr-2 text-gray-500 font-medium bg-gray-100 border-r border-gray-200 whitespace-nowrap">
-                        MLA-BRGY-
+                        REF-BRGY-
                       </span>
                       <input 
                         required
@@ -684,7 +684,7 @@ export default function AccountManagementPage() {
                         placeholder="123"
                         className="w-full px-3 py-2 bg-transparent focus:outline-none"
                         value={formData.office_reference_no.replace(/^(MLA-)?BRGY-/i, '')}
-                        onChange={e => setFormData({...formData, office_reference_no: 'MLA-BRGY-' + e.target.value})}
+                        onChange={e => setFormData({...formData, office_reference_no: 'REF-BRGY-' + e.target.value})}
                       />
                     </div>
                   </div>
@@ -825,7 +825,7 @@ export default function AccountManagementPage() {
                           setFormData({
                             ...formData, 
                             office_name: 'Barangay ' + val,
-                            office_reference_no: 'MLA-BRGY-' + val.toUpperCase().replace(/\s+/g, '')
+                            office_reference_no: 'REF-BRGY-' + val.toUpperCase().replace(/\s+/g, '')
                           });
                         }}
                       />
@@ -836,7 +836,7 @@ export default function AccountManagementPage() {
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reference ID <span className="text-red-500">*</span></label>
                     <div className="flex bg-gray-50 border border-gray-200 rounded-lg focus-within:border-[#1B75BC] focus-within:bg-white transition-all overflow-hidden text-sm">
                       <span className="flex items-center pl-4 pr-2 text-gray-500 font-medium bg-gray-100 border-r border-gray-200 whitespace-nowrap">
-                        MLA-BRGY-
+                        REF-BRGY-
                       </span>
                       <input 
                         required
@@ -844,7 +844,7 @@ export default function AccountManagementPage() {
                         placeholder="123"
                         className="w-full px-3 py-2 bg-transparent focus:outline-none"
                         value={formData.office_reference_no.replace(/^(MLA-)?BRGY-/i, '')}
-                        onChange={e => setFormData({...formData, office_reference_no: 'MLA-BRGY-' + e.target.value})}
+                        onChange={e => setFormData({...formData, office_reference_no: 'REF-BRGY-' + e.target.value})}
                       />
                     </div>
                   </div>

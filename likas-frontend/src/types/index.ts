@@ -151,4 +151,11 @@ export interface DashboardSummary {
   }[];
   topStreets: PriorityItem[];
   recentFloods: (FloodIncident & { barangayName: string })[];
+  causesDistribution?: { name: string; value: number; color: string }[];
+}
+export interface AnalyticsData {
+  trends: { month: string; incidents: number }[];
+  causes: { name: string; value: number; color: string }[];
+  priorities: { priority: string; count: number }[];
+  timeOfDay: { period: string; count: number }[];
 }
