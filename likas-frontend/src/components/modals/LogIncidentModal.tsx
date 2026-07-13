@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Clock, AlertTriangle, MapPin } from 'lucide-react';
 import Modal from '../ui/Modal';
 import DropdownSelect from '../ui/DropdownSelect';
 import InfoTooltip from '../ui/InfoTooltip';
 import { floodService, geoService } from '../../services';
 import type { FloodIncident, FloodCause, FloodStatus, Priority, Barangay } from '../../types';
-import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON, Tooltip } from 'react-leaflet';
 import boundariesData from '../../data/boundaries.json';
 import L from 'leaflet';
 
@@ -53,16 +53,6 @@ interface LogIncidentModalProps {
   onSaved: (incident: FloodIncident) => void;
 }
 
-// Component to update map center dynamically
-function MapUpdater({ center }: { center: [number, number] }) {
-  const map = useMap();
-  const [lat, lng] = center;
-  useEffect(() => {
-    map.setView([lat, lng], map.getZoom(), { animate: true });
-  }, [lat, lng, map]);
-  return null;
-}
-
 // Component to handle map clicks
 function LocationPicker({ position, setPosition }: { position: L.LatLng | null, setPosition: (p: L.LatLng) => void }) {
   useMapEvents({
@@ -91,6 +81,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   // New State for Map Step
   const [step, setStep] = useState<'map' | 'form' | 'overview'>('map');
   const [barangay, setBarangay] = useState<Barangay | null>(null);
+  const [barangayLoading, setBarangayLoading] = useState(false);
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [resolvedLocationName, setResolvedLocationName] = useState<string>('');
@@ -120,9 +111,10 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
   useEffect(() => {
     if (open && barangayId && barangayId !== 'ALL') {
+      setBarangayLoading(true);
       geoService.getBarangayById(barangayId).then(b => {
         if (b) setBarangay(b);
-      }).catch(console.error);
+      }).catch(console.error).finally(() => setBarangayLoading(false));
     }
   }, [open, barangayId]);
 
@@ -179,7 +171,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
   const resetForm = () => {
     setDate(''); setTime(''); setStreet(''); setDepth(MIN_FLOOD_DEPTH); setCause('');
-    setPosition(null);
+    setPosition(null); setBarangay(null);
     setError(''); setShowOverridePrompt(false); setStep('map');
   };
 
@@ -215,18 +207,27 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
             </div>
             
             <div className="relative h-[400px] rounded-xl overflow-hidden border border-gray-200">
-              {open && (
-                <MapContainer center={mapCenter} zoom={16} scrollWheelZoom={true} className="w-full h-full z-0">
+              {barangayLoading ? (
+                <div className="absolute inset-0 bg-gray-100 animate-pulse rounded-xl flex items-center justify-center">
+                  <span className="text-xs font-inter text-gray-400">Loading map…</span>
+                </div>
+              ) : open && (
+                <MapContainer
+                  key={barangay?.id ?? 'default'}
+                  center={mapCenter}
+                  zoom={16}
+                  scrollWheelZoom={true}
+                  className="w-full h-full z-0"
+                >
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-                  <MapUpdater center={mapCenter} />
                   {geojsonFeature && (
-                    <GeoJSON 
-                      key={barangay?.name} 
-                      data={geojsonFeature} 
-                      style={{ color: '#EF4444', weight: 2, fillOpacity: 0.1 }} 
+                    <GeoJSON
+                      key={barangay?.name}
+                      data={geojsonFeature}
+                      style={{ color: '#EF4444', weight: 2.5, fillColor: '#EF4444', fillOpacity: 0.08 }}
                     />
                   )}
                   <LocationPicker position={position} setPosition={setPosition} />

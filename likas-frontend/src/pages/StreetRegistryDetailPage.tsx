@@ -339,7 +339,11 @@ export default function StreetRegistryDetailPage() {
                   zoom={selectedStreet ? 17 : 15}
                   markerPosition={markerPos}
                   markerLabel={selectedStreet?.streetName ?? scopeLabel}
-                  highlightBoundary={selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name}
+                  highlightBoundary={
+                    isBarangay
+                      ? (myBarangayName || undefined)
+                      : (selectedBarangay?.name ?? selectedCity?.name ?? selectedDistrict?.name)
+                  }
                   height="100%"
                 />
               )}
