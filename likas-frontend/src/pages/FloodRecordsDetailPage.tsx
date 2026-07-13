@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2, Database } from 'lucide-react';
+import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2, Database, Archive } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -18,6 +18,14 @@ export default function FloodRecordsDetailPage() {
   const { barangayId: routeBarangayId } = useParams<{ barangayId: string }>();
   const { user } = useAuth();
   const isBarangay = user?.role === 'barangay';
+
+  // ── Tab state ─────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+
+  // ── Year filter state ─────────────────────────────────────────────────────
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   // ── Geography filter state ────────────────────────────────────────────────
   const [districts, setDistricts]   = useState<District[]>([]);
@@ -47,6 +55,17 @@ export default function FloodRecordsDetailPage() {
     if (isBarangay) return;
     geoService.getDistricts().then(setDistricts);
   }, [isBarangay]);
+
+  // ── Load available years on mount ─────────────────────────────────────────
+  useEffect(() => {
+    floodService.getAvailableYears().then(years => {
+      setAvailableYears(years);
+      // If current year is not in the list, default to the most recent year
+      if (years.length > 0 && !years.includes(currentYear)) {
+        setSelectedYear(years[0]);
+      }
+    });
+  }, [currentYear]);
 
   // ── Barangay-role users: auto-scope to their own barangay ─────────────────
   // Barangay accounts don't hit this page with a :barangayId in the route,
@@ -121,10 +140,14 @@ export default function FloodRecordsDetailPage() {
 
     (async () => {
       try {
+        // Determine which year to query based on the active tab
+        const queryYear = activeTab === 'active' ? currentYear : selectedYear;
+        
         const results = await floodService.getFloodRecordsFiltered({
           districtId: districtId !== 'ALL' ? districtId : undefined,
           cityId: cityId !== 'ALL' ? cityId : undefined,
           barangayId: barangayId !== 'ALL' ? barangayId : undefined,
+          year: queryYear,
         });
         
         const merged = results.filter(i =>
@@ -138,7 +161,7 @@ export default function FloodRecordsDetailPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [districtId, cityId, barangayId, startDate, endDate]);
+  }, [districtId, cityId, barangayId, startDate, endDate, activeTab, selectedYear, currentYear]);
 
   // Hotspots: only meaningful when a single barangay is selected
   useEffect(() => {
@@ -478,11 +501,57 @@ export default function FloodRecordsDetailPage() {
           {/* Incident Log */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
             <div className="px-4 sm:px-6 pt-6 pb-4">
+              {/* Tabs and Year Filter */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setActiveTab('active')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-inter font-medium transition-all ${
+                      activeTab === 'active'
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Database size={14} />
+                    Active Records
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('archived')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-inter font-medium transition-all ${
+                      activeTab === 'archived'
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Archive size={14} />
+                    Archived Flood Records
+                  </button>
+                </div>
+
+                {/* Year Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-inter text-gray-500 uppercase">Year</span>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="px-3 py-2 text-sm font-inter border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                  >
+                    {availableYears.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div>
-                  <h2 className="font-heading font-bold text-gray-900 text-base">Incident Log</h2>
+                  <h2 className="font-heading font-bold text-gray-900 text-base">
+                    {activeTab === 'active' ? 'Incident Log' : 'Archived Incident Log'}
+                  </h2>
                   <p className="text-xs font-inter text-gray-400 mt-0.5">
-                    All recorded flood events — {scopeLabel}
+                    {activeTab === 'active' 
+                      ? `Approved flood events from ${selectedYear}` 
+                      : `Historical records partitioned for ${selectedYear}`}
                   </p>
                 </div>
                 <SearchInput
