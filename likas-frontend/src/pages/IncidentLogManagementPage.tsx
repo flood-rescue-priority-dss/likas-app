@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import SearchInput from '../components/ui/SearchInput';
@@ -8,6 +8,7 @@ import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { floodService } from '../services';
 import type { FloodIncident } from '../types';
+import AttachmentLightboxModal from '../components/modals/AttachmentLightboxModal';
 
 type TabType = 'pending' | 'approved' | 'rejected';
 
@@ -21,6 +22,10 @@ export default function IncidentLogManagementPage() {
   const [pendingCount, setPendingCount] = useState(0);
   const [approvedCount, setApprovedCount] = useState(0);
   const [rejectedCount, setRejectedCount] = useState(0);
+
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState<FloodIncident | null>(null);
 
   useEffect(() => {
     loadCounts();
@@ -89,6 +94,16 @@ export default function IncidentLogManagementPage() {
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const handleViewAttachment = (incident: FloodIncident) => {
+    setSelectedIncident(incident);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setSelectedIncident(null);
   };
 
   const filteredIncidents = incidents.filter(incident =>
@@ -200,6 +215,15 @@ export default function IncidentLogManagementPage() {
       header: 'Actions',
       render: (incident) => (
         <div className="flex items-center gap-2">
+          {incident.remarksAttachment && (
+            <button
+              onClick={() => handleViewAttachment(incident)}
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="View attachment"
+            >
+              <Eye size={18} />
+            </button>
+          )}
           <button
             onClick={() => handleReject(incident.id)}
             disabled={processingId === incident.id}
@@ -216,6 +240,27 @@ export default function IncidentLogManagementPage() {
             <CheckCircle size={14} />
             Approve
           </button>
+        </div>
+      )
+    });
+  } else {
+    // For approved and rejected tabs, show only the view attachment icon
+    columns.push({
+      key: 'actions',
+      header: 'Actions',
+      render: (incident) => (
+        <div className="flex items-center gap-2">
+          {incident.remarksAttachment ? (
+            <button
+              onClick={() => handleViewAttachment(incident)}
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="View attachment"
+            >
+              <Eye size={18} />
+            </button>
+          ) : (
+            <span className="text-xs text-gray-400 font-inter">No attachment</span>
+          )}
         </div>
       )
     });
@@ -310,6 +355,19 @@ export default function IncidentLogManagementPage() {
           emptyMessage="No incident logs found."
         />
       </div>
+
+      {/* Attachment Lightbox Modal */}
+      {selectedIncident && (
+        <AttachmentLightboxModal
+          isOpen={lightboxOpen}
+          onClose={closeLightbox}
+          imageUrl={selectedIncident.remarksAttachment || ''}
+          date={selectedIncident.date}
+          time={selectedIncident.time}
+          loggedBy={selectedIncident.loggedByEmail || 'Unknown'}
+          street={selectedIncident.street}
+        />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AppShell from './components/layout/AppShell';
 
+import PriorityListPage from './pages/PriorityListPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import FloodRecordsDetailPage from './pages/FloodRecordsDetailPage';
@@ -74,6 +75,7 @@ function AppRoutes() {
                 )}
                 <Route path="population" element={<PopulationVulnerabilityPage />} />
                 <Route path="street-registry" element={<StreetRegistryDetailPage />} />
+                <Route path="priority-list" element={<PriorityListPage />} />
                 <Route path="account" element={<AccountSettingsPage />} />
                 {user?.role === 'admin' && (
                   <Route path="accounts" element={<AccountManagementPage />} />

@@ -10,6 +10,7 @@ import { Users, Map, CloudRain, AlertTriangle, Clock } from 'lucide-react';
 import { dashboardService } from '../services';
 import type { DashboardSummary } from '../types';
 import PriorityListPage from './PriorityListPage';
+import AnalyticsPage from './AnalyticsPage';
 import PriorityCard from '../components/ui/PriorityCard';
 import PopulationComparisonCard from '../components/ui/PopulationComparisonCard';
 import {
@@ -200,6 +201,7 @@ export default function DashboardPage() {
       <Routes>
         <Route index element={<DashboardHome />} />
         <Route path="priority" element={<PriorityListPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
       </Routes>
     </>
   );
