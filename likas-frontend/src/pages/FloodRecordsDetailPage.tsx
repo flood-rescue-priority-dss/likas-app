@@ -245,28 +245,6 @@ export default function FloodRecordsDetailPage() {
       <span className="text-xs font-inter text-gray-600">{r.cause}</span>
     ), sortable: true },
     { key: 'priority', header: 'Priority',  render: (r: FloodIncident) => <PriorityBadge priority={r.priority} size="sm" />, sortable: true, sortAccessor: (r: FloodIncident) => priorityOrdinal(r.priority) },
-    ...(user?.role === 'admin' ? [{
-      key: 'actions',
-      header: 'Actions',
-      render: (r: FloodIncident) => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleEditClick(r)}
-            className="p-1.5 text-gray-600 hover:text-[#1B75BC] hover:bg-blue-50 rounded-lg transition-colors"
-            title="Edit incident"
-          >
-            <Pencil size={16} />
-          </button>
-          <button
-            onClick={() => handleDeleteClick(r)}
-            className="p-1.5 text-gray-600 hover:text-[#C62828] hover:bg-red-50 rounded-lg transition-colors"
-            title="Delete incident"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      )
-    }] : []),
     { key: 'loggedByRole', header: 'Role/Affiliation', sortable: true, render: (r: FloodIncident) => {
       if (r.loggedByRole === 'admin') {
         return (
@@ -288,6 +266,28 @@ export default function FloodRecordsDetailPage() {
     { key: 'loggedByEmail', header: 'Logged By', sortable: true, render: (r: FloodIncident) => (
       <span className="text-xs font-inter text-gray-700 font-medium">{r.loggedByEmail}</span>
     )},
+    ...(user?.role === 'admin' || isBarangay ? [{
+      key: 'actions',
+      header: 'Actions',
+      render: (r: FloodIncident) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleEditClick(r)}
+            className="p-1.5 text-gray-600 hover:text-[#1B75BC] hover:bg-blue-50 rounded-lg transition-colors"
+            title="Edit incident"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={() => handleDeleteClick(r)}
+            className="p-1.5 text-gray-600 hover:text-[#C62828] hover:bg-red-50 rounded-lg transition-colors"
+            title="Delete incident"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }] : []),
   ];
 
   // ── Resolved label for breadcrumb / card subtitle ─────────────────────────
@@ -534,7 +534,8 @@ export default function FloodRecordsDetailPage() {
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="px-3 py-2 text-sm font-inter border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
+                    className="pl-3 pr-8 py-2 text-sm font-inter border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1B75BC] cursor-pointer appearance-none bg-no-repeat bg-[right_0.65rem_center] bg-[length:10px]"
+                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")" }}
                   >
                     {availableYears.map(year => (
                       <option key={year} value={year}>{year}</option>
