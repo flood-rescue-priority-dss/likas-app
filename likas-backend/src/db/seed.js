@@ -69,11 +69,35 @@ async function seed() {
     // Seed Flood Incidents
     console.log(`Seeding ${FLOOD_INCIDENTS.length} flood records...`);
     for (const f of FLOOD_INCIDENTS) {
+      // Determine the logged_by_email based on role
+      let loggedByEmail = 'legacy@unknown.gov.ph';
+      const loggedByRole = f.loggedByRole || 'barangay';
+      
+      if (loggedByRole === 'admin') {
+        // Use the admin's email
+        const adminUser = ACCOUNTS.find(u => u.role === 'admin');
+        if (adminUser) {
+          loggedByEmail = adminUser.registeredEmail;
+        }
+      } else if (loggedByRole === 'barangay') {
+        // Find the barangay user for this specific barangay
+        const barangay = BARANGAYS.find(b => b.id === f.barangayId);
+        if (barangay) {
+          const barangayUser = ACCOUNTS.find(u => 
+            u.role === 'barangay' && 
+            u.officeName.toLowerCase() === barangay.name.toLowerCase()
+          );
+          if (barangayUser) {
+            loggedByEmail = barangayUser.registeredEmail;
+          }
+        }
+      }
+      
       await client.query(
         `INSERT INTO flood_incidents 
-         (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [f.id, f.barangayId, f.date, f.time, f.street, f.depthInches, f.status, f.cause, f.priority, f.loggedByRole || 'barangay']
+         (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, logged_by_email) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [f.id, f.barangayId, f.date, f.time, f.street, f.depthInches, f.status, f.cause, f.priority, loggedByRole, loggedByEmail]
       );
     }
     

@@ -46,6 +46,7 @@ CREATE TABLE flood_incidents (
   cause VARCHAR(100) NOT NULL,
   priority VARCHAR(20) NOT NULL, -- 'Low', 'Medium', 'High', 'Very High'
   logged_by_role VARCHAR(20) NOT NULL DEFAULT 'barangay',
+  logged_by_email VARCHAR(100) NOT NULL,
   approval_status VARCHAR(20) DEFAULT 'Pending' -- 'Pending', 'Approved', 'Rejected'
 );
 

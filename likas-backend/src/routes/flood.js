@@ -31,6 +31,7 @@ router.get('/', verifyToken, async (req, res) => {
       SELECT f.id, f.barangay_id AS "barangayId", TO_CHAR(f.incident_date, 'YYYY-MM-DD') AS "date", 
              TO_CHAR(f.incident_time, 'HH24:MI') AS "time", f.street, f.depth_inches AS "depthInches", 
              f.status, f.cause, f.priority, f.logged_by_role AS "loggedByRole",
+             f.logged_by_email AS "loggedByEmail",
              f.approval_status AS "approvalStatus", b.name AS "barangayName"
       FROM flood_incidents f
       JOIN barangays b ON f.barangay_id = b.id
@@ -94,6 +95,7 @@ router.get('/:barangayId', verifyToken, async (req, res) => {
       `SELECT id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
               TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
               status, cause, priority, logged_by_role AS "loggedByRole",
+              logged_by_email AS "loggedByEmail",
               approval_status AS "approvalStatus"
        FROM flood_incidents 
        WHERE barangay_id = $1`,
@@ -147,6 +149,13 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
     // Default approval_status: admin logs are auto-approved, barangay logs are pending
     const approvalStatus = loggedByRole === 'admin' ? 'Approved' : 'Pending';
 
+    // Get the authenticated user's email from the database
+    const userRes = await pool.query('SELECT registered_email FROM users WHERE id = $1', [req.user.id]);
+    if (userRes.rows.length === 0) {
+      return res.status(403).json({ error: 'User not found' });
+    }
+    const loggedByEmail = userRes.rows[0].registered_email;
+
     if (!force) {
       // Check for exact match (duplicate data)
       const { rows: existing } = await pool.query(
@@ -162,12 +171,12 @@ router.post('/:barangayId', verifyToken, async (req, res) => {
 
     await pool.query(
       `INSERT INTO flood_incidents 
-       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, approval_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [newId, actualBarangayId, date, time, street, depthInches, status, cause, priority, loggedByRole, approvalStatus]
+       (id, barangay_id, incident_date, incident_time, street, depth_inches, status, cause, priority, logged_by_role, logged_by_email, approval_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [newId, actualBarangayId, date, time, street, depthInches, status, cause, priority, loggedByRole, loggedByEmail, approvalStatus]
     );
 
-    res.status(201).json({ id: newId, barangayId: actualBarangayId, loggedByRole, approvalStatus, ...req.body, status, priority });
+    res.status(201).json({ id: newId, barangayId: actualBarangayId, loggedByRole, loggedByEmail, approvalStatus, ...req.body, status, priority });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -238,7 +247,7 @@ router.put('/incident/:incidentId', verifyToken, async (req, res) => {
        WHERE id = $8
        RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
                  TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
-                 status, cause, priority, logged_by_role AS "loggedByRole"`,
+                 status, cause, priority, logged_by_role AS "loggedByRole", logged_by_email AS "loggedByEmail"`,
       [date, time, street, depthInches, cause, priority, status, incidentId]
     );
 
@@ -294,7 +303,7 @@ router.post('/incident/:incidentId/approve', verifyToken, async (req, res) => {
        WHERE id = $1
        RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
                  TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
-                 status, cause, priority, logged_by_role AS "loggedByRole",
+                 status, cause, priority, logged_by_role AS "loggedByRole", logged_by_email AS "loggedByEmail",
                  approval_status AS "approvalStatus"`,
       [incidentId]
     );
@@ -326,7 +335,7 @@ router.post('/incident/:incidentId/reject', verifyToken, async (req, res) => {
        WHERE id = $1
        RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
                  TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
-                 status, cause, priority, logged_by_role AS "loggedByRole",
+                 status, cause, priority, logged_by_role AS "loggedByRole", logged_by_email AS "loggedByEmail",
                  approval_status AS "approvalStatus"`,
       [incidentId]
     );

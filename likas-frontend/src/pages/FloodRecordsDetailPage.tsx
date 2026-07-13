@@ -244,7 +244,7 @@ export default function FloodRecordsDetailPage() {
         </div>
       )
     }] : []),
-{ key: 'loggedByRole', header: 'Role/Affiliation', sortable: true, render: (r: FloodIncident) => {
+    { key: 'loggedByRole', header: 'Role/Affiliation', sortable: true, render: (r: FloodIncident) => {
       if (r.loggedByRole === 'admin') {
         return (
           <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-inter font-semibold bg-blue-100 text-blue-700">
@@ -262,6 +262,9 @@ export default function FloodRecordsDetailPage() {
         </span>
       );
     }},
+    { key: 'loggedByEmail', header: 'Logged By', sortable: true, render: (r: FloodIncident) => (
+      <span className="text-xs font-inter text-gray-700 font-medium">{r.loggedByEmail}</span>
+    )},
   ];
 
   // ── Resolved label for breadcrumb / card subtitle ─────────────────────────

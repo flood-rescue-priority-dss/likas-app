@@ -180,7 +180,8 @@ router.get('/summary', verifyToken, async (req, res) => {
         SELECT f.id, f.barangay_id AS "barangayId", b.name AS "barangayName", 
                TO_CHAR(f.incident_date, 'YYYY-MM-DD') AS "date", TO_CHAR(f.incident_time, 'HH24:MI') AS "time", 
                f.street, f.depth_inches AS "depthInches", 
-               f.status, f.cause, f.priority 
+               f.status, f.cause, f.priority, f.logged_by_role AS "loggedByRole",
+               f.logged_by_email AS "loggedByEmail"
         FROM flood_incidents f
         JOIN barangays b ON f.barangay_id = b.id
       `;

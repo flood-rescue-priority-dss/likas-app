@@ -58,6 +58,7 @@ export interface FloodIncident {
   cause: FloodCause;
   priority: Priority;
   loggedByRole: UserRole;
+  loggedByEmail: string;
   approvalStatus?: ApprovalStatus;
 }
 

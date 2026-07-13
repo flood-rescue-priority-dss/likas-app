@@ -178,6 +178,14 @@ export default function IncidentLogManagementPage() {
       )
     },
     {
+      key: 'loggedByEmail',
+      header: 'Logged By',
+      sortable: true,
+      render: (incident) => (
+        <span className="text-xs font-inter text-gray-700 font-medium">{incident.loggedByEmail}</span>
+      )
+    },
+    {
       key: 'approvalStatus',
       header: 'Status',
       sortable: true,
