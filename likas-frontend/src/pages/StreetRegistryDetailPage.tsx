@@ -48,6 +48,7 @@ export default function StreetRegistryDetailPage() {
   const [showFloodInfo, setShowFloodInfo] = useState(false);
   const [showVulnInfo, setShowVulnInfo] = useState(false);
   const [showPrioInfo, setShowPrioInfo] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   // ── Load geography dropdowns on mount (admin only) ────────────────────────
   useEffect(() => {
@@ -256,8 +257,17 @@ export default function StreetRegistryDetailPage() {
     <>
       <div className="p-4 sm:p-6 lg:p-10">
         <PageHeader
-          title="STREET REGISTRY"
-          titleUppercase
+          title={
+            <div className="flex items-center gap-3 uppercase">
+              <span>STREET REGISTRY</span>
+              <button 
+                onClick={() => setShowInfo(true)}
+                className="text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                <Info size={18} />
+              </button>
+            </div>
+          }
         />
 
         {/* Metric cards */}
@@ -467,18 +477,33 @@ export default function StreetRegistryDetailPage() {
         </div>
       </Modal>
 
-      <Modal open={showPrioInfo} onClose={() => setShowPrioInfo(false)} title="Priority Computation" size="md">
-        <div className="text-sm font-inter text-gray-600 space-y-4">
+      <Modal open={showPrioInfo} onClose={() => setShowPrioInfo(false)} title="Priority Computation" size="sm">
+        <div className="space-y-4 text-sm font-inter text-gray-600">
           <p>
-            The final Priority Level is calculated using the Hybrid ML Engine that balances the natural hazard with the human impact factor.
+            The Priority Score determines the ranking of streets during flood incidents. It is calculated using an advanced Hybrid ML Engine that combines historical vulnerability data with real-time hazard severity.
           </p>
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <h4 className="font-semibold text-gray-800 mb-2 font-heading">Calculation Formula:</h4>
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
             <code className="text-xs text-indigo-700 bg-indigo-50 px-2 py-1 rounded block mb-2">Priority = Vulnerability + Flood Hazard + Exposure</code>
-            <ul className="list-disc pl-5 space-y-1 text-xs">
-              <li><strong>Vulnerability (35%):</strong> Evaluates the at-risk demographics.</li>
+            <ul className="space-y-2 list-disc pl-4 text-gray-600">
+              <li><strong>Vulnerability (40%):</strong> Demographic sensitivity including Seniors, PWDs, and children.</li>
               <li><strong>Flood Hazard (40%):</strong> Assesses the real-time reported depth and historical frequency.</li>
               <li><strong>Exposure (25%):</strong> Evaluates population density (Barangay Population relative to Total City Population).</li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
+      {/* Info Modal */}
+      <Modal open={showInfo} onClose={() => setShowInfo(false)} title="About Street Registry" size="sm">
+        <div className="space-y-4 text-sm font-inter text-gray-600">
+          <p>
+            The <strong>Street Registry</strong> provides a comprehensive view of all streets in the city, ranked by their disaster priority.
+          </p>
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <h4 className="font-semibold text-blue-900 mb-2">How it works:</h4>
+            <ul className="space-y-2 list-disc pl-4 text-blue-800">
+              <li><strong>Flood Hazard</strong> and <strong>Vulnerability</strong> metrics are aggregated for each street.</li>
+              <li>The <strong>Hybrid Scoring Engine</strong> computes these variables into an overall <strong>Priority Score</strong>.</li>
+              <li>Streets with the highest priority mathematically represent the areas requiring the most urgent emergency deployment.</li>
             </ul>
           </div>
         </div>

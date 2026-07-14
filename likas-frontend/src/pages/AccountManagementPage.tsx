@@ -683,7 +683,7 @@ export default function AccountManagementPage() {
                         type="text" 
                         placeholder="123"
                         className="w-full px-3 py-2 bg-transparent focus:outline-none"
-                        value={formData.office_reference_no.replace(/^(MLA-)?BRGY-/i, '')}
+                        value={formData.office_reference_no.replace(/^REF-BRGY-/i, '')}
                         onChange={e => setFormData({...formData, office_reference_no: 'REF-BRGY-' + e.target.value})}
                       />
                     </div>

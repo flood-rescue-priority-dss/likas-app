@@ -52,6 +52,9 @@ export default function FloodRecordsDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<FloodIncident | null>(null);
 
+  // ── Info Modal state ──────────────────────────────────────────────────────
+  const [showInfo, setShowInfo] = useState(false);
+
   // ── Lightbox state ────────────────────────────────────────────────────────
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -341,8 +344,17 @@ export default function FloodRecordsDetailPage() {
       <div className="p-4 sm:p-6 lg:p-10">
         {/* Page header */}
         <PageHeader
-          title="FLOOD RECORDS"
-          titleUppercase
+          title={
+            <div className="flex items-center gap-3 uppercase">
+              <span>FLOOD RECORDS</span>
+              <button 
+                onClick={() => setShowInfo(true)}
+                className="text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                <Info size={18} />
+              </button>
+            </div>
+          }
           action={
             <div className="relative group">
               <button
@@ -684,6 +696,26 @@ export default function FloodRecordsDetailPage() {
           street={selectedIncident.street}
         />
       )}
+      {/* Info Modal */}
+      <Modal open={showInfo} onClose={() => setShowInfo(false)} title="About Flood Records" size="sm">
+        <div className="space-y-4 text-sm font-inter text-gray-600">
+          <p>
+            The <strong>Flood Records</strong> module acts as the central database for all inundated street reports.
+          </p>
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <h4 className="font-semibold text-blue-900 mb-2">How it works:</h4>
+            <ul className="space-y-2 list-disc pl-4 text-blue-800">
+              <li><strong>Barangay Officers</strong> log real-time street flood depths from the field.</li>
+              <li><strong>MDRRMO Admins</strong> review, approve, or reject these incoming reports.</li>
+              <li>Approved records are automatically fed into the <strong>Hybrid Scoring Engine</strong> to calculate the street's historical flood frequency.</li>
+            </ul>
+          </div>
+          <p>
+            Historical records are used to predict future inundation risks and update the automated Priority Rankings across the city.
+          </p>
+        </div>
+      </Modal>
+
     </>
   );
 }

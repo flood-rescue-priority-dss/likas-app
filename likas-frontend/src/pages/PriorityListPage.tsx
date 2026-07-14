@@ -88,7 +88,7 @@ export default function PriorityListPage() {
           <div className="flex items-center gap-3">
             <span>PRIORITY LIST</span>
             <span className="text-[11px] bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded uppercase font-bold tracking-wider flex items-center">
-              AI-POWERED
+              ML-DRIVEN
             </span>
             <button 
               onClick={() => setShowPrioInfo(true)}
