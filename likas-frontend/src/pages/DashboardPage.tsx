@@ -31,6 +31,7 @@ const DISTRICT_OVERLAYS: DistrictOverlay[] = [
 
 function DashboardHome() {
   const { user } = useAuth();
+  const isBarangay = user?.role === 'barangay';
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
@@ -50,6 +51,13 @@ function DashboardHome() {
     n >= 1_000 ? `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K` :
     n.toLocaleString();
 
+  // ── Map config — scoped to barangay for barangay users ───────────────────
+  const brgy = data?.barangayInfo ?? null;
+  const mapCenter: [number, number] = brgy ? [brgy.lat, brgy.lng] : MANILA_CENTER;
+  const mapZoom   = brgy ? 16 : 12;
+  const mapLabel  = brgy ? brgy.name : 'City of Manila';
+  const mapTitle  = brgy ? brgy.name : 'City of Manila, Philippines';
+
   return (
     <div className="p-4 sm:p-6 lg:p-10">
       <PageHeader
@@ -61,7 +69,7 @@ function DashboardHome() {
       {/* Metric cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <MetricCard
-          label="Total Population"
+          label={isBarangay ? 'Barangay Population' : 'Total Population'}
           value={data ? formatNum(data.totalPopulation) : '—'}
           icon={<Users size={16} className="text-[#1B75BC]" />}
           iconBg="bg-blue-50"
@@ -90,9 +98,31 @@ function DashboardHome() {
       {/* Map */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-heading font-semibold text-gray-800 text-base">City of Manila, Philippines</h2>
-          {/* District color legend */}
-          <div className="hidden sm:flex items-center gap-3 flex-wrap justify-end">
+          <h2 className="font-heading font-semibold text-gray-800 text-base">{mapTitle}</h2>
+          {/* District legend — admin only */}
+          {!isBarangay && (
+            <div className="hidden sm:flex items-center gap-3 flex-wrap justify-end">
+              {DISTRICT_OVERLAYS.map(d => (
+                <div key={d.name} className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: d.color, borderColor: d.color }} />
+                  <span className="text-xs font-inter text-gray-500">{d.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <MapPreview
+          center={mapCenter}
+          zoom={mapZoom}
+          markerPosition={mapCenter}
+          markerLabel={mapLabel}
+          districtOverlays={isBarangay ? undefined : DISTRICT_OVERLAYS}
+          highlightBoundary={brgy ? brgy.name : undefined}
+          height="320px"
+        />
+        {/* Mobile district legend — admin only */}
+        {!isBarangay && (
+          <div className="sm:hidden flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">
             {DISTRICT_OVERLAYS.map(d => (
               <div key={d.name} className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: d.color, borderColor: d.color }} />
@@ -100,24 +130,7 @@ function DashboardHome() {
               </div>
             ))}
           </div>
-        </div>
-        <MapPreview
-          center={MANILA_CENTER}
-          zoom={12}
-          markerPosition={MANILA_CENTER}
-          markerLabel="City of Manila"
-          districtOverlays={DISTRICT_OVERLAYS}
-          height="320px"
-        />
-        {/* Mobile legend */}
-        <div className="sm:hidden flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">
-          {DISTRICT_OVERLAYS.map(d => (
-            <div key={d.name} className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm border" style={{ backgroundColor: d.color, borderColor: d.color }} />
-              <span className="text-xs font-inter text-gray-500">{d.name}</span>
-            </div>
-          ))}
-        </div>
+        )}
       </div>
 
       {/* Middle row: Priority Cards (Full Width Horizontal Scroll) */}

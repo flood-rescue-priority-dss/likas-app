@@ -62,8 +62,10 @@ export default function AnalyticsPage() {
       
       if ('showSaveFilePicker' in window) {
         try {
+          const now = new Date();
+          const dateStr = now.toISOString().slice(0, 10);
           const handle = await (window as any).showSaveFilePicker({
-            suggestedName: 'Likas_Analytics_Report.pdf',
+            suggestedName: `Likas_AnalyticsReport-${dateStr}.pdf`,
             types: [{
               description: 'PDF Document',
               accept: {'application/pdf': ['.pdf']},
@@ -76,12 +78,16 @@ export default function AnalyticsPage() {
         } catch (err: any) {
           if (err.name !== 'AbortError') {
             console.error('File system access error:', err);
-            pdf.save('Likas_Analytics_Report.pdf');
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10);
+            pdf.save(`Likas_AnalyticsReport-${dateStr}.pdf`);
             setShowSuccessModal(true);
           }
         }
       } else {
-        pdf.save('Likas_Analytics_Report.pdf');
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10);
+        pdf.save(`Likas_AnalyticsReport-${dateStr}.pdf`);
         setShowSuccessModal(true);
       }
     } catch (err) {

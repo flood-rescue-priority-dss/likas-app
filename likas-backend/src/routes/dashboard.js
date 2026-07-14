@@ -12,10 +12,13 @@ router.get('/summary', verifyToken, async (req, res) => {
     let totalPop = 0, senior = 0, pwd = 0, children = 0, pregnant = 0;
     let highPriorityAreas = 0, totalFloodRecords = 0, totalStreets = 0;
     let topStreets = [];
+    let barangayInfo = null; // populated for barangay-role users, null for admin
 
-    // Both Admin and Barangay see the global Manila total population
-    const resTotalPop = await pool.query("SELECT SUM(population) FROM barangays");
-    totalPop = parseInt(resTotalPop.rows[0].sum, 10) || 0;
+    // Admin: city-wide population total
+    if (isAdmin) {
+      const resTotalPop = await pool.query("SELECT SUM(population) FROM barangays");
+      totalPop = parseInt(resTotalPop.rows[0].sum, 10) || 0;
+    }
 
     if (isAdmin) {
       // Admin: Global stats
@@ -65,10 +68,16 @@ router.get('/summary', verifyToken, async (req, res) => {
         if (userRes.rows.length > 0) {
           const officeName = userRes.rows[0].office_name;
           // Find matching barangay in barangays table
-          const bRes = await pool.query('SELECT id, population FROM barangays WHERE LOWER(name) = LOWER($1)', [officeName]);
+          const bRes = await pool.query('SELECT id, name, population, lat, lng FROM barangays WHERE LOWER(name) = LOWER($1)', [officeName]);
           if (bRes.rows.length > 0) {
             actualBrgyId = bRes.rows[0].id;
-            // Removed: totalPop = bRes.rows[0].population; (User requested global pop here)
+            totalPop = parseInt(bRes.rows[0].population, 10) || 0;
+            barangayInfo = {
+              id:   actualBrgyId,
+              name: bRes.rows[0].name,
+              lat:  parseFloat(bRes.rows[0].lat),
+              lng:  parseFloat(bRes.rows[0].lng),
+            };
           }
         }
       } catch (err) { console.error(err); }
@@ -208,7 +217,8 @@ router.get('/summary', verifyToken, async (req, res) => {
       highPriorityAreas,
       populationComparison,
       topStreets,
-      recentFloods: resRecent.rows
+      recentFloods: resRecent.rows,
+      barangayInfo,  // null for admin; { id, name, lat, lng } for barangay users
     });
   } catch (err) {
     console.error(err);
