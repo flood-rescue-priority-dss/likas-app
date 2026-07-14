@@ -194,10 +194,38 @@ export const floodService = {
     }
     return res.json();
   },
-  async updateFloodIncident(incidentId: string, updates: { date: string; time: string; street: string; depthInches: number; cause: string; }): Promise<FloodIncident> {
+  async updateFloodIncident(incidentId: string, updates: { date: string; time: string; street: string; depthInches: number; cause: string; }, remarksFile?: File | null): Promise<FloodIncident> {
+    // If a new attachment file is provided, use multipart/form-data
+    if (remarksFile) {
+      const formData = new FormData();
+      formData.append('date', updates.date);
+      formData.append('time', updates.time);
+      formData.append('street', updates.street);
+      formData.append('depthInches', updates.depthInches.toString());
+      formData.append('cause', updates.cause);
+      formData.append('remarksAttachment', remarksFile);
+
+      const token = sessionStorage.getItem('likas_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_BASE}/flood/incident/${incidentId}`, {
+        method: 'PUT',
+        headers,
+        body: formData,
+      });
+      if (!res.ok) {
+        let errMsg = 'API Error';
+        try { const d = await res.json(); errMsg = d.error || d.message || errMsg; } catch { /* ignore */ }
+        throw new Error(errMsg);
+      }
+      return res.json();
+    }
+
+    // No file — send as JSON (keeps existing attachment unchanged)
     return fetchApi<FloodIncident>(`/flood/incident/${incidentId}`, {
       method: 'PUT',
-      body: JSON.stringify(updates)
+      body: JSON.stringify(updates),
     });
   },
   async deleteFloodIncident(incidentId: string): Promise<{ success: boolean; id: string }> {
