@@ -338,48 +338,72 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
   }
 });
 
-router.put('/incident/:incidentId', verifyToken, async (req, res) => {
+router.put('/incident/:incidentId', verifyToken, upload.single('remarksAttachment'), async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can edit incidents' });
-    }
-
     const { incidentId } = req.params;
-    const { date, time, street, depthInches, cause } = req.body;
 
-    const status = calcStatus(depthInches);
-    
-    // Need barangayId to call Python ML
-    const incRes = await pool.query('SELECT barangay_id FROM flood_incidents WHERE id = $1', [incidentId]);
+    // Fetch the existing incident first — needed for auth check and old attachment path
+    const incRes = await pool.query(
+      'SELECT barangay_id, logged_by_role, remarks_attachment FROM flood_incidents WHERE id = $1',
+      [incidentId]
+    );
     if (incRes.rows.length === 0) {
       return res.status(404).json({ error: 'Incident not found' });
     }
-    const bId = incRes.rows[0].barangay_id;
-    
-    // CALL PYTHON ML API
-    const mlData = await getHybridScore(pool, bId, depthInches, status, cause);
+    const existing = incRes.rows[0];
+
+    // ── Authorization ────────────────────────────────────────────────────────
+    if (req.user.role === 'barangay') {
+      // Barangay users may only edit incidents that belong to their own barangay
+      const userActualBarangayId = await resolveActualBarangayId(pool, req.user.id, req.user);
+      if (userActualBarangayId !== existing.barangay_id) {
+        return res.status(403).json({ error: 'Unauthorized to edit this incident' });
+      }
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const { date, time, street, depthInches, cause } = req.body;
+    const status = calcStatus(depthInches);
+
+    // ── ML scoring ───────────────────────────────────────────────────────────
+    const mlData = await getHybridScore(pool, existing.barangay_id, depthInches, status, cause);
     const priority = mlData.priority_class;
     const vulnerabilityClass = mlData.vulnerability_class;
     const hazardClass = mlData.hazard_class;
     const prioritySource = mlData.priority_source;
 
+    // ── Attachment handling ──────────────────────────────────────────────────
+    let remarksAttachment = existing.remarks_attachment; // keep existing by default
+
+    if (req.file) {
+      // A new file was uploaded — delete the old one if it exists
+      if (existing.remarks_attachment) {
+        const oldPath = path.join(__dirname, '../../', existing.remarks_attachment);
+        if (fs.existsSync(oldPath)) {
+          fs.unlink(oldPath, err => {
+            if (err) console.error('Failed to delete old attachment:', err);
+          });
+        }
+      }
+      remarksAttachment = `/uploads/flood-attachments/${req.file.filename}`;
+    }
+
     const { rows } = await pool.query(
       `UPDATE flood_incidents 
        SET incident_date = $1, incident_time = $2, street = $3, 
            depth_inches = $4, cause = $5, priority = $6, status = $7,
-           vulnerability_class = $8, hazard_class = $9, priority_source = $10
-       WHERE id = $11
+           vulnerability_class = $8, hazard_class = $9, priority_source = $10,
+           remarks_attachment = $11
+       WHERE id = $12
        RETURNING id, barangay_id AS "barangayId", TO_CHAR(incident_date, 'YYYY-MM-DD') AS "date", 
                  TO_CHAR(incident_time, 'HH24:MI') AS "time", street, depth_inches AS "depthInches", 
                  status, cause, priority, logged_by_role AS "loggedByRole", logged_by_email AS "loggedByEmail",
                  vulnerability_class AS "vulnerabilityClass", hazard_class AS "hazardClass",
-                 priority_source AS "prioritySource"`,
-      [date, time, street, depthInches, cause, priority, status, vulnerabilityClass, hazardClass, prioritySource, incidentId]
+                 priority_source AS "prioritySource", remarks_attachment AS "remarksAttachment"`,
+      [date, time, street, depthInches, cause, priority, status,
+       vulnerabilityClass, hazardClass, prioritySource, remarksAttachment, incidentId]
     );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Incident not found' });
-    }
 
     res.json(rows[0]);
   } catch (err) {
