@@ -5,3 +5,4 @@ numpy
 joblib
 psycopg2
 scikit-learn
+pydantic
