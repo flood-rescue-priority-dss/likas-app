@@ -2,3 +2,6 @@ fastapi
 uvicorn
 pandas
 numpy
+joblib
+psycopg2
+scikit-learn
