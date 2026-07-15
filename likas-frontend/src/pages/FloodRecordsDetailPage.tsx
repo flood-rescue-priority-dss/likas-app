@@ -64,16 +64,23 @@ export default function FloodRecordsDetailPage() {
     geoService.getDistricts().then(setDistricts);
   }, [isBarangay]);
 
-  // ── Load available years on mount ─────────────────────────────────────────
+  // ── Load available years on mount — scoped to the active tab ────────────
   useEffect(() => {
-    floodService.getAvailableYears().then(years => {
+    const isArchived = activeTab === 'archived';
+    floodService.getAvailableYears(isArchived).then(years => {
       setAvailableYears(years);
-      // If current year is not in the list, default to the most recent year
-      if (years.length > 0 && !years.includes(currentYear)) {
+      // If the currently selected year isn't in the new list, pick the most recent
+      if (years.length > 0 && !years.includes(selectedYear)) {
         setSelectedYear(years[0]);
       }
+      // If no years at all, fall back to current year so the dropdown isn't empty
+      if (years.length === 0) {
+        setAvailableYears([currentYear]);
+        setSelectedYear(currentYear);
+      }
     });
-  }, [currentYear]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // ── Barangay-role users: auto-scope to their own barangay ─────────────────
   // Barangay accounts don't hit this page with a :barangayId in the route,
@@ -148,14 +155,15 @@ export default function FloodRecordsDetailPage() {
 
     (async () => {
       try {
-        // Determine which year to query based on the active tab
-        const queryYear = activeTab === 'active' ? currentYear : selectedYear;
+        // Both tabs respect the selected year
+        const queryYear = selectedYear;
         
         const results = await floodService.getFloodRecordsFiltered({
           districtId: districtId !== 'ALL' ? districtId : undefined,
           cityId: cityId !== 'ALL' ? cityId : undefined,
           barangayId: barangayId !== 'ALL' ? barangayId : undefined,
           year: queryYear,
+          archived: activeTab === 'archived',
         });
         
         const merged = results.filter(i =>
@@ -169,7 +177,7 @@ export default function FloodRecordsDetailPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [districtId, cityId, barangayId, startDate, endDate, activeTab, selectedYear, currentYear]);
+  }, [districtId, cityId, barangayId, startDate, endDate, activeTab, selectedYear]);
 
   // Hotspots: only meaningful when a single barangay is selected
   useEffect(() => {
@@ -298,20 +306,24 @@ export default function FloodRecordsDetailPage() {
               <Eye size={16} />
             </button>
           )}
-          <button
-            onClick={() => handleEditClick(r)}
-            className="p-1.5 text-gray-600 hover:text-[#1B75BC] hover:bg-blue-50 rounded-lg transition-colors"
-            title="Edit incident"
-          >
-            <Pencil size={16} />
-          </button>
-          <button
-            onClick={() => handleDeleteClick(r)}
-            className="p-1.5 text-gray-600 hover:text-[#C62828] hover:bg-red-50 rounded-lg transition-colors"
-            title="Delete incident"
-          >
-            <Trash2 size={16} />
-          </button>
+          {activeTab === 'active' && (
+            <>
+              <button
+                onClick={() => handleEditClick(r)}
+                className="p-1.5 text-gray-600 hover:text-[#1B75BC] hover:bg-blue-50 rounded-lg transition-colors"
+                title="Edit incident"
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                onClick={() => handleDeleteClick(r)}
+                className="p-1.5 text-gray-600 hover:text-[#C62828] hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete incident"
+              >
+                <Trash2 size={16} />
+              </button>
+            </>
+          )}
         </div>
       )
     }] : []),
@@ -560,24 +572,26 @@ export default function FloodRecordsDetailPage() {
                     }`}
                   >
                     <Archive size={14} />
-                    Archived Flood Records
+                    Archived Records
                   </button>
                 </div>
 
-                {/* Year Dropdown */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-inter text-gray-500 uppercase">Year</span>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="pl-3 pr-8 py-2 text-sm font-inter border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1B75BC] cursor-pointer appearance-none bg-no-repeat bg-[right_0.65rem_center] bg-[length:10px]"
-                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")" }}
-                  >
-                    {availableYears.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Year Dropdown — only shown on Archived tab */}
+                {activeTab === 'archived' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-inter text-gray-500 uppercase">Year</span>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(Number(e.target.value))}
+                      className="pl-3 pr-8 py-2 text-sm font-inter border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1B75BC] cursor-pointer appearance-none bg-no-repeat bg-[right_0.65rem_center] bg-[length:10px]"
+                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")" }}
+                    >
+                      {availableYears.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -586,9 +600,9 @@ export default function FloodRecordsDetailPage() {
                     {activeTab === 'active' ? 'Incident Log' : 'Archived Incident Log'}
                   </h2>
                   <p className="text-xs font-inter text-gray-400 mt-0.5">
-                    {activeTab === 'active' 
-                      ? `Approved flood events from ${selectedYear}` 
-                      : `Historical records partitioned for ${selectedYear}`}
+                    {activeTab === 'active'
+                      ? `Flood events from ${currentYear}`
+                      : `Historical records from ${selectedYear}`}
                   </p>
                 </div>
                 <SearchInput
@@ -617,7 +631,7 @@ export default function FloodRecordsDetailPage() {
               <h2 className="font-heading font-bold text-gray-900 text-base">Recurrence Hotspots</h2>
             </div>
             <p className="text-xs font-inter text-gray-400 mb-5">
-              {barangayId !== 'ALL' ? 'Most affected streets' : 'Select a barangay to view hotspots'}
+              {barangayId !== 'ALL' ? 'Most affected streets' : ''}
             </p>
 
             {barangayId === 'ALL' ? (
@@ -642,6 +656,17 @@ export default function FloodRecordsDetailPage() {
                       {h.segmentLow      > 0 && <div className="bg-emerald-400 rounded-full" style={{ flex: h.segmentLow }} />}
                       {h.segmentMedium   > 0 && <div className="bg-amber-400 rounded-full"   style={{ flex: h.segmentMedium }} />}
                       {h.segmentHigh     > 0 && <div className="bg-red-400 rounded-full"     style={{ flex: h.segmentHigh }} />}
+                    </div>
+                    {/* Active / Archived breakdown */}
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <span className="flex items-center gap-1 text-[11px] font-inter text-gray-500">
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#1B75BC]" />
+                        {h.activeCount} active
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] font-inter text-gray-400">
+                        <span className="inline-block w-2 h-2 rounded-full bg-gray-300" />
+                        {h.archivedCount} historical
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -685,11 +710,11 @@ export default function FloodRecordsDetailPage() {
       />
 
       {/* Attachment Lightbox Modal */}
-      {selectedIncident && (
+      {selectedIncident?.remarksAttachment && (
         <AttachmentLightboxModal
           isOpen={lightboxOpen}
           onClose={closeLightbox}
-          imageUrl={selectedIncident.remarksAttachment || ''}
+          imageUrl={selectedIncident.remarksAttachment}
           date={selectedIncident.date}
           time={selectedIncident.time}
           loggedBy={selectedIncident.loggedByEmail || 'Unknown'}

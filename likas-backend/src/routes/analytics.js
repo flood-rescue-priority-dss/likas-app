@@ -21,29 +21,48 @@ router.get('/', verifyToken, async (req, res) => {
       } catch (err) { console.error(err); }
     }
 
-    const whereClause = !isAdmin && actBrgyId ? `WHERE barangay_id = $1` : (!isAdmin ? `WHERE 1=0` : ``);
+    let whereClause = !isAdmin && actBrgyId ? `WHERE barangay_id = $1` : (!isAdmin ? `WHERE 1=0` : `WHERE 1=1`);
     const params = (!isAdmin && actBrgyId) ? [actBrgyId] : [];
 
-    // 1. Flood Trends Over Time (Group by Month)
+    const { startDate, endDate } = req.query;
+    let incidentWhereClause = whereClause;
+    const incidentParams = [...params];
+    
+    if (startDate && endDate) {
+      incidentParams.push(startDate, endDate);
+      incidentWhereClause += ` AND incident_date >= $${incidentParams.length - 1} AND incident_date <= $${incidentParams.length}`;
+    }
+
+    let timeSelect = "TO_CHAR(incident_date, 'Mon YYYY')";
+    if (startDate && endDate) {
+      const s = new Date(startDate);
+      const e = new Date(endDate);
+      const diffDays = (e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays <= 31) {
+        timeSelect = "TO_CHAR(incident_date, 'DD Mon')";
+      }
+    }
+
+    // 1. Flood Trends Over Time
     const trendsQuery = `
-      SELECT TO_CHAR(incident_date, 'Mon YYYY') as month, COUNT(*) as count, MIN(incident_date) as order_date
+      SELECT ${timeSelect} as month, COUNT(*) as count, MIN(incident_date) as order_date
       FROM flood_incidents
-      ${whereClause}
-      GROUP BY TO_CHAR(incident_date, 'Mon YYYY')
+      ${incidentWhereClause}
+      GROUP BY ${timeSelect}
       ORDER BY MIN(incident_date) ASC
-      LIMIT 12
+      LIMIT 31
     `;
-    const trendsRes = await pool.query(trendsQuery, params);
+    const trendsRes = await pool.query(trendsQuery, incidentParams);
     const trendsData = trendsRes.rows.map(r => ({ month: r.month, incidents: parseInt(r.count, 10) }));
 
     // 2. Primary Causes
     const causesQuery = `
       SELECT cause as name, COUNT(*) as value
       FROM flood_incidents
-      ${whereClause}
+      ${incidentWhereClause}
       GROUP BY cause
     `;
-    const causesRes = await pool.query(causesQuery, params);
+    const causesRes = await pool.query(causesQuery, incidentParams);
     const causeColors = {
       'Heavy Rainfall': '#3b82f6',
       'Tropical Cyclone': '#f59e0b',
@@ -60,7 +79,7 @@ router.get('/', verifyToken, async (req, res) => {
     const priorityQuery = `
       SELECT CASE WHEN priority = 'Very High' THEN 'High' ELSE priority END as priority, COUNT(*) as count
       FROM street_registry
-      ${whereClause}
+      ${!isAdmin && actBrgyId ? `WHERE barangay_id = $1` : (!isAdmin ? `WHERE 1=0` : `WHERE 1=1`)}
       GROUP BY CASE WHEN priority = 'Very High' THEN 'High' ELSE priority END
     `;
     const priorityRes = await pool.query(priorityQuery, params);
@@ -78,9 +97,9 @@ router.get('/', verifyToken, async (req, res) => {
     const timeQuery = `
       SELECT EXTRACT(HOUR FROM incident_time) as hour
       FROM flood_incidents
-      ${whereClause}
+      ${incidentWhereClause}
     `;
-    const timeRes = await pool.query(timeQuery, params);
+    const timeRes = await pool.query(timeQuery, incidentParams);
     let morning = 0, afternoon = 0, evening = 0, night = 0;
     
     timeRes.rows.forEach(r => {

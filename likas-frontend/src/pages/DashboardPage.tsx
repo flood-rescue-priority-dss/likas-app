@@ -13,9 +13,6 @@ import PriorityListPage from './PriorityListPage';
 import AnalyticsPage from './AnalyticsPage';
 import PriorityCard from '../components/ui/PriorityCard';
 import PopulationComparisonCard from '../components/ui/PopulationComparisonCard';
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
 
 const MANILA_CENTER: [number, number] = [14.5995, 120.9842];
 
@@ -34,7 +31,6 @@ function DashboardHome() {
   const isBarangay = user?.role === 'barangay';
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState(false);
-  const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,7 +59,6 @@ function DashboardHome() {
       <PageHeader
         title="DASHBOARD"
         titleUppercase
-        search={{ value: search, onChange: setSearch, placeholder: 'Search...' }}
       />
 
       {/* Metric cards */}

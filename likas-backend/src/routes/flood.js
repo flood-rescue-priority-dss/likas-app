@@ -64,9 +64,19 @@ async function resolveActualBarangayId(pool, providedId, reqUser) {
 // GET /flood/years - Get all unique years from flood incidents
 router.get('/years', verifyToken, async (req, res) => {
   try {
+    const { archived } = req.query;
+
+    let whereClause = '';
+    if (archived === 'true') {
+      whereClause = `WHERE EXTRACT(YEAR FROM incident_date) < EXTRACT(YEAR FROM CURRENT_DATE)`;
+    } else if (archived === 'false') {
+      whereClause = `WHERE EXTRACT(YEAR FROM incident_date) = EXTRACT(YEAR FROM CURRENT_DATE)`;
+    }
+
     const { rows } = await pool.query(
       `SELECT DISTINCT EXTRACT(YEAR FROM incident_date)::INTEGER AS year 
-       FROM flood_incidents 
+       FROM flood_incidents
+       ${whereClause}
        ORDER BY year DESC`
     );
     res.json(rows.map(r => r.year));
@@ -77,7 +87,7 @@ router.get('/years', verifyToken, async (req, res) => {
 });
 
 router.get('/', verifyToken, async (req, res) => {
-  const { districtId, cityId, barangayId, approvalStatus, year } = req.query;
+  const { districtId, cityId, barangayId, approvalStatus, year, archived } = req.query;
   
   try {
     let query = `
@@ -127,6 +137,15 @@ router.get('/', verifyToken, async (req, res) => {
       query += ` AND EXTRACT(YEAR FROM f.incident_date) = $${paramCount}`;
       params.push(year);
       paramCount++;
+    }
+
+    // Archive filter: computed from incident_date.
+    // "Active" = records from the current calendar year.
+    // "Archived" = records from any prior year.
+    if (archived === 'true') {
+      query += ` AND EXTRACT(YEAR FROM f.incident_date) < EXTRACT(YEAR FROM CURRENT_DATE)`;
+    } else if (archived === 'false') {
+      query += ` AND EXTRACT(YEAR FROM f.incident_date) = EXTRACT(YEAR FROM CURRENT_DATE)`;
     }
     
     query += ' ORDER BY f.incident_date DESC, f.incident_time DESC';
@@ -312,6 +331,8 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
       `SELECT 
          street, 
          COUNT(*) as "eventCount",
+         SUM(CASE WHEN EXTRACT(YEAR FROM incident_date) = EXTRACT(YEAR FROM CURRENT_DATE) THEN 1 ELSE 0 END) as "activeCount",
+         SUM(CASE WHEN EXTRACT(YEAR FROM incident_date) < EXTRACT(YEAR FROM CURRENT_DATE) THEN 1 ELSE 0 END) as "archivedCount",
          ROUND(SUM(CASE WHEN priority = 'Low' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentLow",
          ROUND(SUM(CASE WHEN priority = 'Medium' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentMedium",
          ROUND(SUM(CASE WHEN priority = 'High' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentHigh",
@@ -327,6 +348,8 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
     res.json(rows.map(r => ({
       street: r.street,
       eventCount: parseInt(r.eventCount, 10),
+      activeCount: parseInt(r.activeCount, 10),
+      archivedCount: parseInt(r.archivedCount, 10),
       segmentLow: parseFloat(r.segmentLow) || 0,
       segmentMedium: parseFloat(r.segmentMedium) || 0,
       segmentHigh: parseFloat(r.segmentHigh) || 0,

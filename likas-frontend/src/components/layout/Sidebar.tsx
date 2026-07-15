@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
+import { useIncidentBadgeContext } from '../../contexts/IncidentBadgeContext';
 import likasLogo from '../../assets/likas_logo_1.png';
 
 interface SidebarProps {
@@ -43,6 +44,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
+  const { displayCount } = useIncidentBadgeContext();
 
   const sliderRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -172,10 +174,28 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
                       )}
                       <span className={`relative flex-shrink-0 transition-colors duration-200 ${textColor}`}>
                         {item.icon}
+                        {/* Badge in collapsed (icon-only) mode */}
+                        {item.label === 'Incident Management' && displayCount && !expanded && (
+                          <span
+                            aria-label={`${displayCount} unacknowledged incidents`}
+                            className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-[#C62828] text-white text-[10px] font-bold font-inter flex items-center justify-center leading-none pointer-events-none"
+                          >
+                            {displayCount}
+                          </span>
+                        )}
                       </span>
                       {expanded && (
-                        <span className={`relative font-heading text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${textColor}`}>
+                        <span className={`relative font-heading text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${textColor} flex items-center gap-2`}>
                           {item.label}
+                          {/* Badge in expanded mode — next to label */}
+                          {item.label === 'Incident Management' && displayCount && (
+                            <span
+                              aria-label={`${displayCount} unacknowledged incidents`}
+                              className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#C62828] text-white text-[10px] font-bold font-inter flex items-center justify-center leading-none"
+                            >
+                              {displayCount}
+                            </span>
+                          )}
                         </span>
                       )}
                     </>

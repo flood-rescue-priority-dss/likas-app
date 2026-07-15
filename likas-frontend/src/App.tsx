@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { IncidentBadgeProvider } from './contexts/IncidentBadgeContext';
 import AppShell from './components/layout/AppShell';
 
 import PriorityListPage from './pages/PriorityListPage';
@@ -66,6 +67,7 @@ function AppRoutes() {
         path="/*"
         element={
           <AuthGuard>
+            <IncidentBadgeProvider>
             <AppShell expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(prev => !prev)}>
               <Routes>
                 <Route path="dashboard/*" element={<DashboardPage />} />
@@ -83,6 +85,7 @@ function AppRoutes() {
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </AppShell>
+            </IncidentBadgeProvider>
           </AuthGuard>
         }
       />
