@@ -35,6 +35,12 @@ const redIcon = L.divIcon({
 const STREETS = ['Padre Faura Taft South Bound', 'NBI Taft', 'Quirino Ave.', 'Taft Avenue', 'Pedro Gil', 'United Nations Avenue'];
 const CAUSES: FloodCause[] = ['Heavy Rainfall', 'Tropical Cyclone'];
 
+// Returns today's date as YYYY-MM-DD in local time (avoids UTC offset issues)
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /**
  * Ray-casting point-in-polygon check for a single GeoJSON ring.
  * Coords are [lng, lat] pairs (GeoJSON order).
@@ -370,7 +376,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
                 <input
                   type="date"
                   value={date}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={localToday()}
                   onChange={e => setDate(e.target.value)}
                   className="w-full px-4 py-3 pr-4 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
                 />
