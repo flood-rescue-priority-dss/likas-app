@@ -308,5 +308,11 @@ export const priorityService = {
 };
 
 export const analyticsService = {
-  getAnalytics: (): Promise<AnalyticsData> => fetchApi<AnalyticsData>('/analytics'),
+  getAnalytics: (startDate?: string, endDate?: string): Promise<AnalyticsData> => {
+    let url = '/analytics';
+    if (startDate && endDate) {
+      url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+    return fetchApi<AnalyticsData>(url);
+  },
 };
