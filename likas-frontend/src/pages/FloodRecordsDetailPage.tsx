@@ -16,6 +16,12 @@ import { floodService, geoService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import type { FloodIncident, RecurrenceHotspot, District, City, Barangay } from '../types';
 
+// Returns today's date as YYYY-MM-DD using local time (avoids UTC offset issues with toISOString)
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function FloodRecordsDetailPage() {
   const { barangayId: routeBarangayId } = useParams<{ barangayId: string }>();
   const { user } = useAuth();
@@ -495,7 +501,7 @@ export default function FloodRecordsDetailPage() {
                 <input
                   type="date"
                   value={startDate}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={localToday()}
                   onChange={e => setStartDate(e.target.value)}
                   className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                 />
@@ -505,7 +511,7 @@ export default function FloodRecordsDetailPage() {
                 <input
                   type="date"
                   value={endDate}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={localToday()}
                   onChange={e => setEndDate(e.target.value)}
                   className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                 />
@@ -538,7 +544,7 @@ export default function FloodRecordsDetailPage() {
               <input
                 type="date"
                 value={startDate}
-                max={new Date().toISOString().split('T')[0]}
+                max={localToday()}
                 onChange={e => setStartDate(e.target.value)}
                 className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
               />
@@ -546,7 +552,7 @@ export default function FloodRecordsDetailPage() {
               <input
                 type="date"
                 value={endDate}
-                max={new Date().toISOString().split('T')[0]}
+                max={localToday()}
                 onChange={e => setEndDate(e.target.value)}
                 className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
               />
