@@ -91,29 +91,11 @@ export const authService = {
     }
   },
 
-  async updateOfficeDetails(accountId: string, updates: Partial<UserAccount>): Promise<UserAccount> {
-    const stored = sessionStorage.getItem('likas_user');
-    if (stored) {
-      const current = JSON.parse(stored) as UserAccount;
-      if (current.id === accountId) {
-        const updated = { ...current, ...updates };
-        sessionStorage.setItem('likas_user', JSON.stringify(updated));
-        return updated;
-      }
-    }
-    throw new Error('Account not found');
-  },
-
-  /** Verify current password and update the signed-in user's own office details. */
-  async updateMyProfile(
-    currentPassword: string,
-    updates: { officeName: string; cityMunicipality: string; officeContact: string; zone?: string; region?: string }
-  ): Promise<UserAccount> {
-    const updated = await fetchApi<UserAccount>('/auth/profile', {
-      method: 'PUT',
-      body: JSON.stringify({ currentPassword, ...updates }),
+  async updateOfficeDetails(_accountId: string, updates: Partial<UserAccount>): Promise<UserAccount> {
+    const updated = await fetchApi<UserAccount>('/auth/office-details', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
     });
-    // Keep session storage in sync so the rest of the app sees the new values immediately
     sessionStorage.setItem('likas_user', JSON.stringify(updated));
     return updated;
   },

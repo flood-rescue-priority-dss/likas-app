@@ -90,6 +90,52 @@ router.get('/me', verifyToken, async (req, res) => {
   }
 });
 
+// PATCH /api/auth/office-details
+// Body: { officeName, cityMunicipality, officeContact, zone?, region? }
+// Persists the office detail changes made in the Edit Office Details modal.
+router.patch('/office-details', verifyToken, async (req, res) => {
+  try {
+    const { officeName, cityMunicipality, officeContact, zone, region } = req.body;
+
+    if (!officeName || !cityMunicipality || !officeContact) {
+      return res.status(400).json({ error: 'officeName, cityMunicipality, and officeContact are required' });
+    }
+
+    const { rows: existingRows } = await pool.query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+    if (existingRows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+    const isBarangay = existingRows[0].role === 'barangay';
+
+    const { rows } = await pool.query(
+      `UPDATE users
+       SET office_name = $1,
+           city_municipality = $2,
+           office_contact = $3,
+           zone = $4,
+           region = $5
+       WHERE id = $6
+       RETURNING id, office_name, city_municipality, zone, region, office_contact,
+                 office_reference_no, registered_email, role, last_login, must_change_password`,
+      [
+        officeName,
+        cityMunicipality,
+        officeContact,
+        isBarangay ? (zone ?? null) : null,
+        isBarangay ? null : (region ?? null),
+        req.user.id,
+      ]
+    );
+
+    const user = mapUser(rows[0]);
+    delete user.passwordHash;
+
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.post('/register-barangay', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -196,60 +242,8 @@ router.post('/request-email-change', verifyToken, async (req, res) => {
   }
 });
 
-// PUT /api/auth/profile
-// Body: { currentPassword, officeName, cityMunicipality, officeContact, zone?, region? }
-// Verifies the current password then updates the authenticated user's own office details.
-router.put('/profile', verifyToken, async (req, res) => {
-  try {
-    const { currentPassword, officeName, cityMunicipality, officeContact, zone, region } = req.body;
-
-    if (!currentPassword) {
-      return res.status(400).json({ error: 'Password is required to save changes.' });
-    }
-
-    // Verify password first
-    const { rows: pwRows } = await pool.query(
-      'SELECT password_hash FROM users WHERE id = $1',
-      [req.user.id]
-    );
-    if (pwRows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    if (!bcrypt.compareSync(currentPassword, pwRows[0].password_hash)) {
-      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
-    }
-
-    // Build update — only update fields that were provided
-    const { rows } = await pool.query(
-      `UPDATE users
-       SET office_name        = COALESCE($1, office_name),
-           city_municipality  = COALESCE($2, city_municipality),
-           office_contact     = COALESCE($3, office_contact),
-           zone               = COALESCE($4, zone),
-           region             = COALESCE($5, region)
-       WHERE id = $6
-       RETURNING id, office_name, city_municipality, zone, region, office_contact,
-                 office_reference_no, registered_email, role, last_login, must_change_password`,
-      [
-        officeName        || null,
-        cityMunicipality  || null,
-        officeContact     || null,
-        zone              ?? null,
-        region            ?? null,
-        req.user.id,
-      ]
-    );
-
-    const updated = mapUser(rows[0]);
-    delete updated.passwordHash;
-    res.json(updated);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 // POST /api/auth/confirm-email-change
+// Body: { code }
 router.post('/confirm-email-change', verifyToken, async (req, res) => {
   try {
     const { code } = req.body;
