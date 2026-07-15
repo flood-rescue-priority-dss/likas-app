@@ -68,18 +68,33 @@ export default function DataTable<T>({
     return [...data].sort((a, b) => {
       const av = getValue(a);
       const bv = getValue(b);
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
       let cmp: number;
-      if (typeof av === 'number' && typeof bv === 'number') {
+      if (av == null && bv == null) {
+        cmp = 0;
+      } else if (av == null) {
+        cmp = 1;
+      } else if (bv == null) {
+        cmp = -1;
+      } else if (typeof av === 'number' && typeof bv === 'number') {
         cmp = av - bv;
       } else {
         cmp = String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
       }
+      // Tie-breaker: some columns (e.g. an "Updated" date with day-only
+      // precision) legitimately share the same value across many rows.
+      // Array.sort is stable, so ties would otherwise keep their previous
+      // relative order no matter which direction is selected, making a
+      // second click look like it "does nothing". Falling back to each
+      // row's unique key keeps the order deterministic and lets it flip
+      // along with everything else when the direction is toggled.
+      if (cmp === 0) {
+        const ak = keyExtractor(a);
+        const bk = keyExtractor(b);
+        cmp = ak < bk ? -1 : ak > bk ? 1 : 0;
+      }
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [data, sortKey, sortDir, columns]);
+  }, [data, sortKey, sortDir, columns, keyExtractor]);
 
   const totalPages = Math.max(1, Math.ceil(sortedData.length / entries));
   const start = (page - 1) * entries;
