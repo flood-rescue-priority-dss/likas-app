@@ -21,8 +21,8 @@ export default function AnalyticsPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showIntervalModal, setShowIntervalModal] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState('All Time');
-  const [startMonth, setStartMonth] = useState('');
-  const [endMonth, setEndMonth] = useState('');
+  const [startDateInput, setStartDateInput] = useState('');
+  const [endDateInput, setEndDateInput] = useState('');
   
   const chart1Ref = useRef<HTMLDivElement>(null);
   const chart2Ref = useRef<HTMLDivElement>(null);
@@ -38,7 +38,7 @@ export default function AnalyticsPage() {
       else if (selectedInterval === 'Last 30 Days') fileSuffix = 'last30days';
       else if (selectedInterval === 'This Year') fileSuffix = 'thisyear';
       else if (selectedInterval === 'Custom Range') {
-        fileSuffix = startMonth && endMonth ? `from${startMonth}-to${endMonth}` : 'custom';
+        fileSuffix = startDateInput && endDateInput ? `from${startDateInput}-to${endDateInput}` : 'custom';
       }
 
       const captureChart = async (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -61,13 +61,12 @@ export default function AnalyticsPage() {
       
       let displayInterval = selectedInterval;
       if (selectedInterval === 'Custom Range') {
-        const formatMonth = (val: string) => {
+        const formatDate = (val: string) => {
           if (!val) return 'Any';
-          const [yyyy, mm] = val.split('-');
-          const date = new Date(parseInt(yyyy), parseInt(mm) - 1);
-          return date.toLocaleString('default', { month: 'short', year: 'numeric' });
+          const date = new Date(val);
+          return date.toLocaleString('default', { month: 'short', day: 'numeric', year: 'numeric' });
         };
-        displayInterval = `${formatMonth(startMonth)} - ${formatMonth(endMonth)}`;
+        displayInterval = `${formatDate(startDateInput)} - ${formatDate(endDateInput)}`;
       }
       pdf.text(`Likas Analytics & Reports (${displayInterval})`, 10, 16);
       
@@ -125,14 +124,12 @@ export default function AnalyticsPage() {
         } else if (selectedInterval === 'This Year') {
           start = `${today.getFullYear()}-01-01`;
         } else if (selectedInterval === 'Custom Range') {
-          if (!startMonth || !endMonth) {
+          if (!startDateInput || !endDateInput) {
             setLoading(false);
             return;
           }
-          start = `${startMonth}-01`;
-          const [y, m] = endMonth.split('-');
-          const d = new Date(parseInt(y), parseInt(m), 0);
-          end = d.toISOString().split('T')[0];
+          start = startDateInput;
+          end = endDateInput;
         } else {
           end = '';
         }
@@ -162,6 +159,38 @@ export default function AnalyticsPage() {
             const existing = res.trends.find((t: any) => t.month === mStr);
             paddedTrends.push(existing || { month: mStr, incidents: 0 });
           }
+        } else if (selectedInterval === 'Custom Range') {
+          if (startDateInput && endDateInput) {
+            paddedTrends = [];
+            const sDate = new Date(startDateInput);
+            const eDate = new Date(endDateInput);
+            const diffDays = (eDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24);
+            
+            if (diffDays <= 31) {
+              // Pad by days
+              for (let d = new Date(sDate); d <= eDate; d.setDate(d.getDate() + 1)) {
+                const dayStr = String(d.getDate()).padStart(2, '0');
+                const mStr = `${dayStr} ${monthNames[d.getMonth()]}`;
+                const existing = res.trends.find((t: any) => t.month === mStr);
+                paddedTrends.push(existing || { month: mStr, incidents: 0 });
+              }
+            } else {
+              // Pad by months
+              const startY = sDate.getFullYear();
+              const startM = sDate.getMonth();
+              const endY = eDate.getFullYear();
+              const endM = eDate.getMonth();
+              const totalMonths = (endY - startY) * 12 + (endM - startM);
+              
+              for (let i = 0; i <= totalMonths; i++) {
+                const curM = (startM + i) % 12;
+                const curY = startY + Math.floor((startM + i) / 12);
+                const mStr = `${monthNames[curM]} ${curY}`;
+                const existing = res.trends.find((t: any) => t.month === mStr);
+                paddedTrends.push(existing || { month: mStr, incidents: 0 });
+              }
+            }
+          }
         }
         
         res.trends = paddedTrends;
@@ -175,10 +204,10 @@ export default function AnalyticsPage() {
       }
     };
 
-    if (selectedInterval !== 'Custom Range' || (startMonth && endMonth)) {
+    if (selectedInterval !== 'Custom Range' || (startDateInput && endDateInput)) {
       fetchAnalytics();
     }
-  }, [selectedInterval, startMonth, endMonth]);
+  }, [selectedInterval, startDateInput, endDateInput]);
 
   if (loading) {
     return (
@@ -231,16 +260,16 @@ export default function AnalyticsPage() {
         {selectedInterval === 'Custom Range' && (
           <div className="flex items-center gap-2 ml-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
             <input 
-              type="month" 
-              value={startMonth}
-              onChange={(e) => setStartMonth(e.target.value)}
+              type="date" 
+              value={startDateInput}
+              onChange={(e) => setStartDateInput(e.target.value)}
               className="px-2 py-1 outline-none text-sm font-inter text-gray-700 bg-transparent"
             />
             <span className="text-gray-400 font-inter text-sm font-semibold">to</span>
             <input 
-              type="month" 
-              value={endMonth}
-              onChange={(e) => setEndMonth(e.target.value)}
+              type="date" 
+              value={endDateInput}
+              onChange={(e) => setEndDateInput(e.target.value)}
               className="px-2 py-1 outline-none text-sm font-inter text-gray-700 bg-transparent"
             />
           </div>
