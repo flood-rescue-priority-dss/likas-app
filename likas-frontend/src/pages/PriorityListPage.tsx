@@ -136,7 +136,12 @@ export default function PriorityListPage() {
       <Modal
         open={!!selectedMapItem}
         onClose={() => setSelectedMapItem(null)}
-        title={selectedMapItem ? `${selectedMapItem.streetName} Map View` : 'Map View'}
+        title={selectedMapItem ? (
+          <span>
+            <span className="text-[#C62828]">{selectedMapItem.barangay}</span>
+            {' — '}{selectedMapItem.streetName}
+          </span>
+        ) : 'Map View'}
         size="lg"
         headerRight={selectedMapItem ? <PriorityBadge priority={selectedMapItem.priority} size="sm" /> : undefined}
       >

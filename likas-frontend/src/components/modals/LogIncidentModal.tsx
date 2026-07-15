@@ -390,6 +390,10 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
                 <input
                   type="time"
                   value={time}
+                  max={date === localToday() ? (() => {
+                    const now = new Date();
+                    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                  })() : undefined}
                   onChange={e => setTime(e.target.value)}
                   className="w-full px-4 py-3 pr-4 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
                 />

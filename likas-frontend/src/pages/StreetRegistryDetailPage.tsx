@@ -354,7 +354,9 @@ export default function StreetRegistryDetailPage() {
           <div className="mb-4 px-4 py-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-[#C62828]" />
             <span className="text-sm font-inter font-medium text-gray-700">
-              Showing: <span className="font-semibold text-gray-900">{selectedStreet.streetName}</span>
+              Showing: <span className="font-semibold text-gray-900">
+                {selectedStreetBarangayName ? `${selectedStreetBarangayName} — ` : ''}{selectedStreet.streetName}
+              </span>
             </span>
             <PriorityBadge priority={selectedStreet.priority} size="sm" />
             <span className="ml-auto text-xs font-inter text-gray-400">
@@ -409,7 +411,9 @@ export default function StreetRegistryDetailPage() {
               <h2 className="font-heading font-bold text-gray-900 text-base">Map Preview</h2>
             </div>
             <p className="text-xs font-inter text-gray-400 mb-4">
-              {selectedStreet ? selectedStreet.streetName : scopeLabel}
+              {selectedStreet
+                ? `${selectedStreetBarangayName ? `${selectedStreetBarangayName} — ` : ''}${selectedStreet.streetName}`
+                : scopeLabel}
             </p>
             
             {/* Selected street indicator */}
@@ -417,7 +421,7 @@ export default function StreetRegistryDetailPage() {
               <div className="mb-4 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[#C62828]" />
                 <span className="text-xs font-inter font-medium text-gray-700">
-                  {selectedStreet.streetName}
+                  {selectedStreetBarangayName ? `${selectedStreetBarangayName} — ` : ''}{selectedStreet.streetName}
                 </span>
               </div>
             )}
