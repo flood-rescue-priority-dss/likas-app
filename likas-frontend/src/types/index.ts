@@ -60,10 +60,6 @@ export interface FloodIncident {
   loggedByRole: UserRole;
   loggedByEmail?: string;
   approvalStatus?: ApprovalStatus;
-  prioritySource?: string;
-  vulnerabilityClass?: string;
-  hazardClass?: string;
-  remarksAttachment?: string;
 }
 
 export interface RecurrenceHotspot {

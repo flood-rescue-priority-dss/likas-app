@@ -19,6 +19,8 @@ export default function AnalyticsPage() {
   const [error, setError] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showIntervalModal, setShowIntervalModal] = useState(false);
+  const [selectedInterval, setSelectedInterval] = useState('All Time');
   
   const chart1Ref = useRef<HTMLDivElement>(null);
   const chart2Ref = useRef<HTMLDivElement>(null);
@@ -48,7 +50,7 @@ export default function AnalyticsPage() {
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(18);
       pdf.setTextColor(5, 10, 48); // Prussian Blue
-      pdf.text('Likas Analytics & Reports', 10, 16);
+      pdf.text(`Likas Analytics & Reports (${selectedInterval})`, 10, 16);
       
       pdf.addImage(img1, 'PNG', 10, 25, contentWidth, chartHeight);
       pdf.addImage(img2, 'PNG', 10, 155, contentWidth, chartHeight);
@@ -133,7 +135,7 @@ export default function AnalyticsPage() {
         breadcrumbs={[{ label: 'Historical insights and flood patterns', muted: true }]}
         action={
           <button
-            onClick={exportToPDF}
+            onClick={() => setShowIntervalModal(true)}
             disabled={isExporting}
             className="flex items-center gap-2 px-4 py-2 bg-[#050A30] hover:bg-[#0a1545] text-white font-inter text-sm font-semibold rounded-lg shadow-sm transition-all disabled:opacity-70"
           >
@@ -268,6 +270,40 @@ export default function AnalyticsPage() {
           >
             Done
           </button>
+        </div>
+      </Modal>
+
+      <Modal open={showIntervalModal} onClose={() => setShowIntervalModal(false)} title="Select Report Interval" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 font-inter">Choose the time interval to include in your PDF report.</p>
+          <div className="space-y-2">
+            {['Last 7 Days', 'Last 30 Days', 'This Year', 'All Time'].map((interval) => (
+              <label key={interval} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <input 
+                  type="radio" 
+                  name="interval" 
+                  value={interval}
+                  checked={selectedInterval === interval}
+                  onChange={(e) => setSelectedInterval(e.target.value)}
+                  className="w-4 h-4 text-[#1B75BC] focus:ring-[#1B75BC]"
+                />
+                <span className="font-inter text-sm text-gray-800">{interval}</span>
+              </label>
+            ))}
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+            <button onClick={() => setShowIntervalModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Cancel</button>
+            <button 
+              onClick={() => {
+                setShowIntervalModal(false);
+                exportToPDF();
+              }} 
+              disabled={isExporting}
+              className="px-4 py-2 text-sm font-semibold text-white bg-[#050A30] hover:bg-[#0a1545] rounded-lg shadow-sm"
+            >
+              Generate PDF
+            </button>
+          </div>
         </div>
       </Modal>
     </div>
