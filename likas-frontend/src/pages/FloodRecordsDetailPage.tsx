@@ -148,8 +148,8 @@ export default function FloodRecordsDetailPage() {
 
     (async () => {
       try {
-        // Determine which year to query based on the active tab
-        const queryYear = activeTab === 'active' ? currentYear : selectedYear;
+        // Both tabs respect the selected year
+        const queryYear = selectedYear;
         
         const results = await floodService.getFloodRecordsFiltered({
           districtId: districtId !== 'ALL' ? districtId : undefined,
@@ -169,7 +169,7 @@ export default function FloodRecordsDetailPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [districtId, cityId, barangayId, startDate, endDate, activeTab, selectedYear, currentYear]);
+  }, [districtId, cityId, barangayId, startDate, endDate, activeTab, selectedYear]);
 
   // Hotspots: only meaningful when a single barangay is selected
   useEffect(() => {
@@ -685,11 +685,11 @@ export default function FloodRecordsDetailPage() {
       />
 
       {/* Attachment Lightbox Modal */}
-      {selectedIncident && (
+      {selectedIncident?.remarksAttachment && (
         <AttachmentLightboxModal
           isOpen={lightboxOpen}
           onClose={closeLightbox}
-          imageUrl={selectedIncident.remarksAttachment || ''}
+          imageUrl={selectedIncident.remarksAttachment}
           date={selectedIncident.date}
           time={selectedIncident.time}
           loggedBy={selectedIncident.loggedByEmail || 'Unknown'}
