@@ -64,16 +64,23 @@ export default function FloodRecordsDetailPage() {
     geoService.getDistricts().then(setDistricts);
   }, [isBarangay]);
 
-  // ── Load available years on mount ─────────────────────────────────────────
+  // ── Load available years on mount — scoped to the active tab ────────────
   useEffect(() => {
-    floodService.getAvailableYears().then(years => {
+    const isArchived = activeTab === 'archived';
+    floodService.getAvailableYears(isArchived).then(years => {
       setAvailableYears(years);
-      // If current year is not in the list, default to the most recent year
-      if (years.length > 0 && !years.includes(currentYear)) {
+      // If the currently selected year isn't in the new list, pick the most recent
+      if (years.length > 0 && !years.includes(selectedYear)) {
         setSelectedYear(years[0]);
       }
+      // If no years at all, fall back to current year so the dropdown isn't empty
+      if (years.length === 0) {
+        setAvailableYears([currentYear]);
+        setSelectedYear(currentYear);
+      }
     });
-  }, [currentYear]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // ── Barangay-role users: auto-scope to their own barangay ─────────────────
   // Barangay accounts don't hit this page with a :barangayId in the route,
@@ -156,6 +163,7 @@ export default function FloodRecordsDetailPage() {
           cityId: cityId !== 'ALL' ? cityId : undefined,
           barangayId: barangayId !== 'ALL' ? barangayId : undefined,
           year: queryYear,
+          archived: activeTab === 'archived',
         });
         
         const merged = results.filter(i =>
@@ -564,20 +572,22 @@ export default function FloodRecordsDetailPage() {
                   </button>
                 </div>
 
-                {/* Year Dropdown */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-inter text-gray-500 uppercase">Year</span>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="pl-3 pr-8 py-2 text-sm font-inter border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1B75BC] cursor-pointer appearance-none bg-no-repeat bg-[right_0.65rem_center] bg-[length:10px]"
-                    style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")" }}
-                  >
-                    {availableYears.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Year Dropdown — only shown on Archived tab */}
+                {activeTab === 'archived' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-inter text-gray-500 uppercase">Year</span>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(Number(e.target.value))}
+                      className="pl-3 pr-8 py-2 text-sm font-inter border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1B75BC] cursor-pointer appearance-none bg-no-repeat bg-[right_0.65rem_center] bg-[length:10px]"
+                      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")" }}
+                    >
+                      {availableYears.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -586,9 +596,9 @@ export default function FloodRecordsDetailPage() {
                     {activeTab === 'active' ? 'Incident Log' : 'Archived Incident Log'}
                   </h2>
                   <p className="text-xs font-inter text-gray-400 mt-0.5">
-                    {activeTab === 'active' 
-                      ? `Approved flood events from ${selectedYear}` 
-                      : `Historical records partitioned for ${selectedYear}`}
+                    {activeTab === 'active'
+                      ? `Approved flood events from ${currentYear}`
+                      : `Historical records from ${selectedYear}`}
                   </p>
                 </div>
                 <SearchInput

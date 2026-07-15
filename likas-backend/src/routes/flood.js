@@ -64,9 +64,19 @@ async function resolveActualBarangayId(pool, providedId, reqUser) {
 // GET /flood/years - Get all unique years from flood incidents
 router.get('/years', verifyToken, async (req, res) => {
   try {
+    const { archived } = req.query;
+
+    let whereClause = '';
+    if (archived === 'true') {
+      whereClause = `WHERE EXTRACT(YEAR FROM incident_date) < EXTRACT(YEAR FROM CURRENT_DATE)`;
+    } else if (archived === 'false') {
+      whereClause = `WHERE EXTRACT(YEAR FROM incident_date) = EXTRACT(YEAR FROM CURRENT_DATE)`;
+    }
+
     const { rows } = await pool.query(
       `SELECT DISTINCT EXTRACT(YEAR FROM incident_date)::INTEGER AS year 
-       FROM flood_incidents 
+       FROM flood_incidents
+       ${whereClause}
        ORDER BY year DESC`
     );
     res.json(rows.map(r => r.year));
@@ -77,7 +87,7 @@ router.get('/years', verifyToken, async (req, res) => {
 });
 
 router.get('/', verifyToken, async (req, res) => {
-  const { districtId, cityId, barangayId, approvalStatus, year } = req.query;
+  const { districtId, cityId, barangayId, approvalStatus, year, archived } = req.query;
   
   try {
     let query = `
@@ -127,6 +137,15 @@ router.get('/', verifyToken, async (req, res) => {
       query += ` AND EXTRACT(YEAR FROM f.incident_date) = $${paramCount}`;
       params.push(year);
       paramCount++;
+    }
+
+    // Archive filter: computed from incident_date.
+    // "Active" = records from the current calendar year.
+    // "Archived" = records from any prior year.
+    if (archived === 'true') {
+      query += ` AND EXTRACT(YEAR FROM f.incident_date) < EXTRACT(YEAR FROM CURRENT_DATE)`;
+    } else if (archived === 'false') {
+      query += ` AND EXTRACT(YEAR FROM f.incident_date) = EXTRACT(YEAR FROM CURRENT_DATE)`;
     }
     
     query += ' ORDER BY f.incident_date DESC, f.incident_time DESC';
