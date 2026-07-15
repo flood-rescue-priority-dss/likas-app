@@ -35,6 +35,48 @@ const redIcon = L.divIcon({
 const STREETS = ['Padre Faura Taft South Bound', 'NBI Taft', 'Quirino Ave.', 'Taft Avenue', 'Pedro Gil', 'United Nations Avenue'];
 const CAUSES: FloodCause[] = ['Heavy Rainfall', 'Tropical Cyclone'];
 
+/**
+ * Ray-casting point-in-polygon check for a single GeoJSON ring.
+ * Coords are [lng, lat] pairs (GeoJSON order).
+ */
+function pointInRing(lng: number, lat: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = ((yi > lat) !== (yj > lat)) &&
+      (lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Returns true if [lng, lat] is inside any polygon/multipolygon in the GeoJSON feature.
+ */
+function isPointInGeoJSON(lng: number, lat: number, feature: any): boolean {
+  if (!feature) return false;
+  const geom = feature.geometry ?? feature;
+  if (!geom) return false;
+
+  const checkPolygon = (coords: number[][][]) =>
+    pointInRing(lng, lat, coords[0]); // outer ring only (holes ignored for UX)
+
+  if (geom.type === 'Polygon') {
+    return checkPolygon(geom.coordinates);
+  }
+  if (geom.type === 'MultiPolygon') {
+    return geom.coordinates.some((poly: number[][][]) => checkPolygon(poly));
+  }
+  if (geom.type === 'Feature') {
+    return isPointInGeoJSON(lng, lat, geom.geometry);
+  }
+  if (geom.type === 'FeatureCollection') {
+    return geom.features.some((f: any) => isPointInGeoJSON(lng, lat, f));
+  }
+  return false;
+}
+
 const calcPriority = (depth: number): Priority => {
   if (depth < 10) return 'Low';
   if (depth < 20) return 'Medium';
@@ -90,6 +132,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [resolvedLocationName, setResolvedLocationName] = useState<string>('');
+  const [isInsideBoundary, setIsInsideBoundary] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!position) {
@@ -115,6 +158,26 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   }, [position, barangay]);
 
   useEffect(() => {
+    if (!position) {
+      setIsInsideBoundary(null);
+      return;
+    }
+    // Compute the boundary feature inline to avoid forward-reference issues
+    const data = boundariesData as Record<string, any>;
+    const bName = barangay?.name;
+    const feature = bName
+      ? (data[bName] ?? data[Object.keys(data).find(k => k.toLowerCase() === bName.toLowerCase()) ?? ''] ?? null)
+      : null;
+
+    if (!feature) {
+      // No boundary data — allow the pin (don't block the user)
+      setIsInsideBoundary(true);
+      return;
+    }
+    setIsInsideBoundary(isPointInGeoJSON(position.lng, position.lat, feature));
+  }, [position, barangay]);
+
+  useEffect(() => {
     if (open && barangayId && barangayId !== 'ALL') {
       setBarangayLoading(true);
       geoService.getBarangayById(barangayId).then(b => {
@@ -126,6 +189,10 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
   const handleProceedToForm = () => {
     if (!position) {
       setError('Please pin a location on the map first.');
+      return;
+    }
+    if (isInsideBoundary === false) {
+      setError('The pinned location is outside the barangay boundary. Please pin a location within the highlighted area.');
       return;
     }
     setError('');
@@ -184,6 +251,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
     setDate(''); setTime(''); setStreet(''); setDepth(MIN_FLOOD_DEPTH); setCause(''); setRemarksFile(null);
     setPosition(null); setBarangay(null);
     setError(''); setShowOverridePrompt(false); setStep('map');
+    setIsInsideBoundary(null);
   };
 
   const handleClose = () => { resetForm(); onClose(); };
@@ -247,15 +315,27 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
 
               {/* Location Overlay */}
               {position && (
-                <div className="absolute bottom-4 left-4 right-4 bg-white rounded-xl shadow-lg p-3 z-[400] flex items-center gap-3">
+                <div className={`absolute bottom-4 left-4 right-4 rounded-xl shadow-lg p-3 z-[400] flex items-center gap-3 ${
+                  isInsideBoundary === false
+                    ? 'bg-red-50 border border-red-300'
+                    : 'bg-white'
+                }`}>
                   <div className="pl-2 pr-1 flex-shrink-0">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#050A30" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 0C7.58 0 4 3.58 4 8C4 14 12 24 12 24C12 24 20 14 20 8C20 3.58 16.42 0 12 0ZM12 11.5C10.07 11.5 8.5 9.93 8.5 8C8.5 6.07 10.07 4.5 12 4.5C13.93 4.5 15.5 6.07 15.5 8C15.5 9.93 13.93 11.5 12 11.5Z"/>
-                    </svg>
+                    {isInsideBoundary === false ? (
+                      <AlertTriangle size={24} className="text-red-500" />
+                    ) : (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="#050A30" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 0C7.58 0 4 3.58 4 8C4 14 12 24 12 24C12 24 20 14 20 8C20 3.58 16.42 0 12 0ZM12 11.5C10.07 11.5 8.5 9.93 8.5 8C8.5 6.07 10.07 4.5 12 4.5C13.93 4.5 15.5 6.07 15.5 8C15.5 9.93 13.93 11.5 12 11.5Z"/>
+                      </svg>
+                    )}
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Selected Location</p>
-                    <p className="font-bold text-[#050A30] text-[17px] truncate">{resolvedLocationName}</p>
+                    {isInsideBoundary === false ? (
+                      <p className="font-semibold text-red-600 text-sm">Outside barangay boundary</p>
+                    ) : (
+                      <p className="font-bold text-[#050A30] text-[17px] truncate">{resolvedLocationName}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -274,7 +354,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
               </button>
               <button
                 onClick={handleProceedToForm}
-                disabled={mapLoading || !position}
+                disabled={mapLoading || !position || isInsideBoundary === false}
                 className="flex-1 py-3 bg-[#050A30] hover:bg-[#0a1545] disabled:opacity-60 text-white font-heading font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 {mapLoading ? 'Locating...' : 'Next'}
