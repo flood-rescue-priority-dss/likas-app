@@ -206,7 +206,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
     // For admin users, remarks file is optional
     if (!date || !time || !street || depth < MIN_FLOOD_DEPTH || !cause || (!isAdmin && !remarksFile)) {
       const missingRemarksMsg = !isAdmin && !remarksFile ? ' including the remarks attachment' : '';
-      setError(`Please fill in all required fields${missingRemarksMsg}. Flood depth must be at least ${MIN_FLOOD_DEPTH} inches.`);
+      setError(`Please fill in all required fields${missingRemarksMsg}.`);
       return;
     }
     setError('');
@@ -370,6 +370,7 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
                 <input
                   type="date"
                   value={date}
+                  max={new Date().toISOString().split('T')[0]}
                   onChange={e => setDate(e.target.value)}
                   className="w-full px-4 py-3 pr-4 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
                 />
@@ -425,7 +426,10 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
                   }}
                   className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-inter bg-white focus:outline-none focus:ring-2 focus:ring-[#1B75BC]/30 focus:border-[#1B75BC]"
                 />
-                <span className="px-4 py-3 bg-[#F0F4F7] border border-gray-200 rounded-xl text-sm font-inter text-gray-600 font-medium">in</span>
+                <span
+                  title="Measured by inches"
+                  className="px-4 py-3 bg-[#F0F4F7] border border-gray-200 rounded-xl text-sm font-inter text-gray-600 font-medium cursor-help"
+                >in</span>
               </div>
 
               <p className="text-xs font-inter mt-1 text-gray-400">

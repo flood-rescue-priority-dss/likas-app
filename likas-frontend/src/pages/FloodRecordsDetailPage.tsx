@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2, Database, Archive, Info, Eye } from 'lucide-react';
+import { CloudRain, Droplets, AlertTriangle, BarChart2, Plus, Pencil, Trash2, Database, Archive, Info, Eye, CheckCircle } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import MetricCard from '../components/ui/MetricCard';
 import DataTable from '../components/ui/DataTable';
@@ -51,6 +51,8 @@ export default function FloodRecordsDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<FloodIncident | null>(null);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const savedSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Info Modal state ──────────────────────────────────────────────────────
   const [showInfo, setShowInfo] = useState(false);
@@ -197,7 +199,7 @@ export default function FloodRecordsDetailPage() {
 
   // ── Derived metrics ───────────────────────────────────────────────────────
   const avgDepth = incidents.length
-    ? Math.round(incidents.reduce((s, i) => s + i.depthInches, 0) / incidents.length)
+    ? Math.round(incidents.reduce((s, i) => s + Number(i.depthInches), 0) / incidents.length)
     : 0;
 
   const avgPriorityScore = () => {
@@ -214,6 +216,10 @@ export default function FloodRecordsDetailPage() {
     if (barangayId && barangayId !== 'ALL') {
       floodService.getRecurrenceHotspots(barangayId).then(setHotspots);
     }
+    // Show success banner, auto-dismiss after 3 s
+    setSavedSuccess(true);
+    if (savedSuccessTimer.current) clearTimeout(savedSuccessTimer.current);
+    savedSuccessTimer.current = setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   const handleIncidentUpdated = (updatedIncident: FloodIncident) => {
@@ -263,7 +269,7 @@ export default function FloodRecordsDetailPage() {
     },
     { key: 'date',   header: 'Date',        render: (r: FloodIncident) => r.date, sortable: true },
     { key: 'time',   header: 'Time',        render: (r: FloodIncident) => r.time, sortable: true },
-    { key: 'depth',  header: 'Depth (in)',  render: (r: FloodIncident) => r.depthInches, sortable: true, sortAccessor: (r: FloodIncident) => r.depthInches },
+    { key: 'depth',  header: 'Depth (in)',  render: (r: FloodIncident) => r.depthInches, sortable: true, sortAccessor: (r: FloodIncident) => Number(r.depthInches) },
     { key: 'status', header: 'Status',      render: (r: FloodIncident) => (
       <span className="px-2 py-0.5 rounded text-xs font-inter font-medium bg-gray-100 text-gray-600">{r.status}</span>
     ), sortable: true },
@@ -353,7 +359,7 @@ export default function FloodRecordsDetailPage() {
 
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-10">
+      <div className="relative p-4 sm:p-6 lg:p-10">
         {/* Page header */}
         <PageHeader
           title={
@@ -393,6 +399,14 @@ export default function FloodRecordsDetailPage() {
             </div>
           }
         />
+
+        {/* Success toast — floats within the page content area */}
+        {savedSuccess && (
+          <div className="absolute top-6 left-6 z-50 flex items-center gap-3 bg-emerald-50  border border-emerald-300 shadow-lg text-emerald-800 rounded-xl px-5 py-5 animate-fadeIn">
+            <CheckCircle size={18} className="text-emerald-500 flex-shrink-0" />
+            <p className="text-sm font-inter font-medium whitespace-nowrap">Record added successfully.</p>
+          </div>
+        )} 
 
         {/* Metric cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -481,6 +495,7 @@ export default function FloodRecordsDetailPage() {
                 <input
                   type="date"
                   value={startDate}
+                  max={new Date().toISOString().split('T')[0]}
                   onChange={e => setStartDate(e.target.value)}
                   className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                 />
@@ -490,6 +505,7 @@ export default function FloodRecordsDetailPage() {
                 <input
                   type="date"
                   value={endDate}
+                  max={new Date().toISOString().split('T')[0]}
                   onChange={e => setEndDate(e.target.value)}
                   className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
                 />
@@ -522,6 +538,7 @@ export default function FloodRecordsDetailPage() {
               <input
                 type="date"
                 value={startDate}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={e => setStartDate(e.target.value)}
                 className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
               />
@@ -529,6 +546,7 @@ export default function FloodRecordsDetailPage() {
               <input
                 type="date"
                 value={endDate}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={e => setEndDate(e.target.value)}
                 className="px-3 py-2 text-xs font-inter border border-gray-200 rounded-xl bg-[#F0F4F7] focus:outline-none focus:ring-1 focus:ring-[#1B75BC]"
               />
