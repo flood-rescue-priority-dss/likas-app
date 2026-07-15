@@ -33,11 +33,11 @@ export default function Modal({ open, onClose, title, size = 'md', children, hea
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className={`relative w-full ${SIZES[size]} bg-[#F8F9FC] rounded-3xl shadow-2xl overflow-hidden animate-slideUp`}
+        className={`relative w-full ${SIZES[size]} bg-[#F8F9FC] rounded-3xl shadow-2xl overflow-hidden animate-slideUp flex flex-col max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
         {!hideHeader && (
-          <div className="flex items-center justify-between px-8 pt-7 pb-2">
+          <div className="flex items-center justify-between px-8 pt-7 pb-2 flex-shrink-0">
             <p className="text-xs font-inter text-gray-400 uppercase">{title}</p>
             <div className="flex items-center gap-2">
               {headerRight}
@@ -50,7 +50,7 @@ export default function Modal({ open, onClose, title, size = 'md', children, hea
             </div>
           </div>
         )}
-        <div className="px-6 sm:px-8 pb-8 pt-4">{children}</div>
+        <div className="px-6 sm:px-8 pb-8 pt-4 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

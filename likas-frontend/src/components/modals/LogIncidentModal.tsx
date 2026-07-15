@@ -513,25 +513,36 @@ export default function LogIncidentModal({ open, onClose, barangayId, onSaved }:
                   }}
                 />
                 {remarksFile ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{remarksFile.name}</p>
-                        <p className="text-xs text-gray-500">{(remarksFile.size / 1024).toFixed(1)} KB</p>
-                      </div>
+                  <div className="flex flex-col gap-3">
+                    {/* Image preview */}
+                    <div className="relative rounded-lg overflow-hidden border border-emerald-200 bg-emerald-50">
+                      <img
+                        src={URL.createObjectURL(remarksFile)}
+                        alt="Remarks preview"
+                        className="w-full max-h-48 object-contain"
+                      />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setRemarksFile(null)}
-                      className="text-red-500 hover:text-red-700 text-sm font-medium"
-                    >
-                      Remove
-                    </button>
+                    {/* File info + remove */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-sm font-medium text-gray-900 truncate">{remarksFile.name}</p>
+                          <p className="text-xs text-gray-500">{(remarksFile.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRemarksFile(null)}
+                        className="text-red-500 hover:text-red-700 text-sm font-medium flex-shrink-0 ml-2"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <label htmlFor="remarksFile" className="cursor-pointer flex flex-col items-center text-center">
