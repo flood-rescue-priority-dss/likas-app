@@ -69,6 +69,8 @@ export interface FloodIncident {
 export interface RecurrenceHotspot {
   street: string;
   eventCount: number;
+  activeCount: number;
+  archivedCount: number;
   segmentLow: number;
   segmentMedium: number;
   segmentHigh: number;

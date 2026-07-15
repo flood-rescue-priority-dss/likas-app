@@ -331,6 +331,8 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
       `SELECT 
          street, 
          COUNT(*) as "eventCount",
+         SUM(CASE WHEN EXTRACT(YEAR FROM incident_date) = EXTRACT(YEAR FROM CURRENT_DATE) THEN 1 ELSE 0 END) as "activeCount",
+         SUM(CASE WHEN EXTRACT(YEAR FROM incident_date) < EXTRACT(YEAR FROM CURRENT_DATE) THEN 1 ELSE 0 END) as "archivedCount",
          ROUND(SUM(CASE WHEN priority = 'Low' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentLow",
          ROUND(SUM(CASE WHEN priority = 'Medium' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentMedium",
          ROUND(SUM(CASE WHEN priority = 'High' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as "segmentHigh",
@@ -346,6 +348,8 @@ router.get('/:barangayId/hotspots', verifyToken, async (req, res) => {
     res.json(rows.map(r => ({
       street: r.street,
       eventCount: parseInt(r.eventCount, 10),
+      activeCount: parseInt(r.activeCount, 10),
+      archivedCount: parseInt(r.archivedCount, 10),
       segmentLow: parseFloat(r.segmentLow) || 0,
       segmentMedium: parseFloat(r.segmentMedium) || 0,
       segmentHigh: parseFloat(r.segmentHigh) || 0,

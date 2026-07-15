@@ -306,20 +306,24 @@ export default function FloodRecordsDetailPage() {
               <Eye size={16} />
             </button>
           )}
-          <button
-            onClick={() => handleEditClick(r)}
-            className="p-1.5 text-gray-600 hover:text-[#1B75BC] hover:bg-blue-50 rounded-lg transition-colors"
-            title="Edit incident"
-          >
-            <Pencil size={16} />
-          </button>
-          <button
-            onClick={() => handleDeleteClick(r)}
-            className="p-1.5 text-gray-600 hover:text-[#C62828] hover:bg-red-50 rounded-lg transition-colors"
-            title="Delete incident"
-          >
-            <Trash2 size={16} />
-          </button>
+          {activeTab === 'active' && (
+            <>
+              <button
+                onClick={() => handleEditClick(r)}
+                className="p-1.5 text-gray-600 hover:text-[#1B75BC] hover:bg-blue-50 rounded-lg transition-colors"
+                title="Edit incident"
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                onClick={() => handleDeleteClick(r)}
+                className="p-1.5 text-gray-600 hover:text-[#C62828] hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete incident"
+              >
+                <Trash2 size={16} />
+              </button>
+            </>
+          )}
         </div>
       )
     }] : []),
@@ -568,7 +572,7 @@ export default function FloodRecordsDetailPage() {
                     }`}
                   >
                     <Archive size={14} />
-                    Archived Flood Records
+                    Archived Records
                   </button>
                 </div>
 
@@ -597,7 +601,7 @@ export default function FloodRecordsDetailPage() {
                   </h2>
                   <p className="text-xs font-inter text-gray-400 mt-0.5">
                     {activeTab === 'active'
-                      ? `Approved flood events from ${currentYear}`
+                      ? `Flood events from ${currentYear}`
                       : `Historical records from ${selectedYear}`}
                   </p>
                 </div>
@@ -627,7 +631,7 @@ export default function FloodRecordsDetailPage() {
               <h2 className="font-heading font-bold text-gray-900 text-base">Recurrence Hotspots</h2>
             </div>
             <p className="text-xs font-inter text-gray-400 mb-5">
-              {barangayId !== 'ALL' ? 'Most affected streets' : 'Select a barangay to view hotspots'}
+              {barangayId !== 'ALL' ? 'Most affected streets' : ''}
             </p>
 
             {barangayId === 'ALL' ? (
@@ -652,6 +656,17 @@ export default function FloodRecordsDetailPage() {
                       {h.segmentLow      > 0 && <div className="bg-emerald-400 rounded-full" style={{ flex: h.segmentLow }} />}
                       {h.segmentMedium   > 0 && <div className="bg-amber-400 rounded-full"   style={{ flex: h.segmentMedium }} />}
                       {h.segmentHigh     > 0 && <div className="bg-red-400 rounded-full"     style={{ flex: h.segmentHigh }} />}
+                    </div>
+                    {/* Active / Archived breakdown */}
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <span className="flex items-center gap-1 text-[11px] font-inter text-gray-500">
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#1B75BC]" />
+                        {h.activeCount} active
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] font-inter text-gray-400">
+                        <span className="inline-block w-2 h-2 rounded-full bg-gray-300" />
+                        {h.archivedCount} historical
+                      </span>
                     </div>
                   </div>
                 ))}

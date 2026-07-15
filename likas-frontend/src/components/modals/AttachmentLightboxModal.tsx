@@ -10,6 +10,11 @@ interface AttachmentLightboxModalProps {
   street: string;
 }
 
+// Derive the server origin from VITE_API_URL by stripping the /api suffix.
+// Uploads are served at /uploads/..., not /api/uploads/...
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const SERVER_ORIGIN = API_URL.replace(/\/api\/?$/, '');
+
 export default function AttachmentLightboxModal({
   isOpen,
   onClose,
@@ -19,9 +24,9 @@ export default function AttachmentLightboxModal({
   loggedBy,
   street
 }: AttachmentLightboxModalProps) {
-  const fullImageUrl = imageUrl.startsWith('http') 
-    ? imageUrl 
-    : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${imageUrl}`;
+  const fullImageUrl = imageUrl.startsWith('http')
+    ? imageUrl
+    : `${SERVER_ORIGIN}${imageUrl}`;
 
   return (
     <Modal open={isOpen} onClose={onClose} title="Incident Attachment" size="md">
