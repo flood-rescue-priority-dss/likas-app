@@ -9,6 +9,7 @@ import type { Column } from '../components/ui/DataTable';
 import { floodService } from '../services';
 import type { FloodIncident } from '../types';
 import AttachmentLightboxModal from '../components/modals/AttachmentLightboxModal';
+import { useIncidentBadgeContext } from '../contexts/IncidentBadgeContext';
 
 type TabType = 'pending' | 'approved' | 'rejected';
 
@@ -22,6 +23,8 @@ export default function IncidentLogManagementPage() {
   const [pendingCount, setPendingCount] = useState(0);
   const [approvedCount, setApprovedCount] = useState(0);
   const [rejectedCount, setRejectedCount] = useState(0);
+
+  const { refresh: refreshBadge } = useIncidentBadgeContext();
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -76,6 +79,7 @@ export default function IncidentLogManagementPage() {
       await floodService.approveIncident(incidentId);
       setIncidents(prev => prev.filter(i => i.id !== incidentId));
       await loadCounts();
+      refreshBadge();
     } catch (error) {
       console.error('Failed to approve incident:', error);
     } finally {
@@ -89,6 +93,7 @@ export default function IncidentLogManagementPage() {
       await floodService.rejectIncident(incidentId);
       setIncidents(prev => prev.filter(i => i.id !== incidentId));
       await loadCounts();
+      refreshBadge();
     } catch (error) {
       console.error('Failed to reject incident:', error);
     } finally {
