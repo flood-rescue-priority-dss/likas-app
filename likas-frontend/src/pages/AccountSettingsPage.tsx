@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { CheckCircle } from 'lucide-react';
 import EditOfficeDetailsModal from '../components/modals/EditOfficeDetailsModal';
 import ChangePasswordModal from '../components/modals/ChangePasswordModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,6 +38,8 @@ export default function AccountSettingsPage() {
   const { user, updateUser } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const [pwModalOpen, setPwModalOpen] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const savedSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!user) return null;
 
@@ -44,6 +47,9 @@ export default function AccountSettingsPage() {
 
   const handleSaved = (updated: UserAccount) => {
     updateUser(updated);
+    setSavedSuccess(true);
+    if (savedSuccessTimer.current) clearTimeout(savedSuccessTimer.current);
+    savedSuccessTimer.current = setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   const formatDate = (iso: string) => {
@@ -58,8 +64,15 @@ export default function AccountSettingsPage() {
 
   return (
     <>
-      <div className="p-4 sm:p-6 lg:p-10 max-w-3xl">
+      <div className="p-4 sm:p-6 lg:p-10 max-w-3xl relative">
         <PageHeader title="ACCOUNT SETTINGS" titleUppercase />
+
+        {savedSuccess && (
+          <div className="absolute top-6 right-4 sm:right-6 lg:right-10 z-50 flex items-center gap-3 bg-emerald-50 border border-emerald-300 shadow-lg text-emerald-800 rounded-xl px-5 py-4 animate-fadeIn">
+            <CheckCircle size={18} className="text-emerald-500 flex-shrink-0" />
+            <p className="text-sm font-inter font-medium whitespace-nowrap">Account details updated successfully.</p>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Card heading */}

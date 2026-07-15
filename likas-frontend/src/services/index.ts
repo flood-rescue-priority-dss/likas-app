@@ -104,6 +104,20 @@ export const authService = {
     throw new Error('Account not found');
   },
 
+  /** Verify current password and update the signed-in user's own office details. */
+  async updateMyProfile(
+    currentPassword: string,
+    updates: { officeName: string; cityMunicipality: string; officeContact: string; zone?: string; region?: string }
+  ): Promise<UserAccount> {
+    const updated = await fetchApi<UserAccount>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, ...updates }),
+    });
+    // Keep session storage in sync so the rest of the app sees the new values immediately
+    sessionStorage.setItem('likas_user', JSON.stringify(updated));
+    return updated;
+  },
+
   logout() {
     sessionStorage.removeItem('likas_user');
     sessionStorage.removeItem('likas_token');

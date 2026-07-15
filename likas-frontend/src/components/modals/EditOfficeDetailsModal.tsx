@@ -15,11 +15,26 @@ interface EditOfficeDetailsModalProps {
 export default function EditOfficeDetailsModal({
   open, onClose, account, onSaved,
 }: EditOfficeDetailsModalProps) {
+  // The stored Office Contact may include a local leading 0 (e.g. "09123456781")
+  // or an already-prefixed country code (e.g. "+639123456781" / "639123456781").
+  // The modal only edits the bare 10-digit mobile number, since "+63" is shown
+  // as a fixed prefix outside the textbox, so strip whichever prefix is present
+  // before displaying it.
+  const normalizeContact = (value: string) => {
+    let digits = value.replace(/\D/g, '');
+    if (digits.length > 10 && digits.startsWith('63')) {
+      digits = digits.slice(2);
+    } else if (digits.length > 10 && digits.startsWith('0')) {
+      digits = digits.slice(1);
+    }
+    return digits.slice(0, 10);
+  };
+
   const [officeName, setOfficeName] = useState(account.officeName);
   const [city, setCity] = useState(account.cityMunicipality);
   const [zone, setZone] = useState(account.zone ?? '');
   const [region, setRegion] = useState(account.region ?? '');
-  const [contact, setContact] = useState(account.officeContact);
+  const [contact, setContact] = useState(normalizeContact(account.officeContact));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
@@ -32,7 +47,7 @@ export default function EditOfficeDetailsModal({
       setCity(account.cityMunicipality);
       setZone(account.zone ?? '');
       setRegion(account.region ?? '');
-      setContact(account.officeContact);
+      setContact(normalizeContact(account.officeContact));
       setError('');
     }
   }, [open, account]);
@@ -92,15 +107,26 @@ export default function EditOfficeDetailsModal({
   };
 
   const handleConfirm = async (password: string) => {
-    // ... existing auth check
+    // Throws on incorrect password — ConfirmPasswordModal catches this,
+    // shows the error, and keeps itself open.
+    await authService.verifyPassword(password);
+
     const updates: Partial<UserAccount> = {
       officeName,
       cityMunicipality: city,
       // Prepend +63 here before sending to the backend
-      officeContact: `+63${contact}`, 
+      officeContact: `+63${contact}`,
       ...(account.role === 'barangay' ? { zone } : { region }),
     };
-    // ...
+
+    setLoading(true);
+    try {
+      const updated = await authService.updateOfficeDetails(account.id, updates);
+      onSaved(updated);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formFields = [
