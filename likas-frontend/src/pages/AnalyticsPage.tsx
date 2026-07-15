@@ -21,6 +21,8 @@ export default function AnalyticsPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showIntervalModal, setShowIntervalModal] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState('All Time');
+  const [startMonth, setStartMonth] = useState('');
+  const [endMonth, setEndMonth] = useState('');
   
   const chart1Ref = useRef<HTMLDivElement>(null);
   const chart2Ref = useRef<HTMLDivElement>(null);
@@ -50,7 +52,18 @@ export default function AnalyticsPage() {
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(18);
       pdf.setTextColor(5, 10, 48); // Prussian Blue
-      pdf.text(`Likas Analytics & Reports (${selectedInterval})`, 10, 16);
+      
+      let displayInterval = selectedInterval;
+      if (selectedInterval === 'Custom Range') {
+        const formatMonth = (val: string) => {
+          if (!val) return 'Any';
+          const [yyyy, mm] = val.split('-');
+          const date = new Date(parseInt(yyyy), parseInt(mm) - 1);
+          return date.toLocaleString('default', { month: 'short', year: 'numeric' });
+        };
+        displayInterval = `${formatMonth(startMonth)} - ${formatMonth(endMonth)}`;
+      }
+      pdf.text(`Likas Analytics & Reports (${displayInterval})`, 10, 16);
       
       pdf.addImage(img1, 'PNG', 10, 25, contentWidth, chartHeight);
       pdf.addImage(img2, 'PNG', 10, 155, contentWidth, chartHeight);
@@ -277,18 +290,42 @@ export default function AnalyticsPage() {
         <div className="space-y-4">
           <p className="text-sm text-gray-600 font-inter">Choose the time interval to include in your PDF report.</p>
           <div className="space-y-2">
-            {['Last 7 Days', 'Last 30 Days', 'This Year', 'All Time'].map((interval) => (
-              <label key={interval} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                <input 
-                  type="radio" 
-                  name="interval" 
-                  value={interval}
-                  checked={selectedInterval === interval}
-                  onChange={(e) => setSelectedInterval(e.target.value)}
-                  className="w-4 h-4 text-[#1B75BC] focus:ring-[#1B75BC]"
-                />
-                <span className="font-inter text-sm text-gray-800">{interval}</span>
-              </label>
+            {['Last 7 Days', 'Last 30 Days', 'This Year', 'All Time', 'Custom Range'].map((interval) => (
+              <div key={interval}>
+                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input 
+                    type="radio" 
+                    name="interval" 
+                    value={interval}
+                    checked={selectedInterval === interval}
+                    onChange={(e) => setSelectedInterval(e.target.value)}
+                    className="w-4 h-4 text-[#1B75BC] focus:ring-[#1B75BC]"
+                  />
+                  <span className="font-inter text-sm text-gray-800">{interval}</span>
+                </label>
+                {interval === 'Custom Range' && selectedInterval === 'Custom Range' && (
+                  <div className="mt-3 ml-7 flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-500 font-inter text-xs font-semibold w-8">From:</span>
+                      <input 
+                        type="month" 
+                        value={startMonth}
+                        onChange={(e) => setStartMonth(e.target.value)}
+                        className="flex-1 border border-gray-200 p-1.5 rounded-md text-sm font-inter text-gray-700 bg-white"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-500 font-inter text-xs font-semibold w-8">To:</span>
+                      <input 
+                        type="month" 
+                        value={endMonth}
+                        onChange={(e) => setEndMonth(e.target.value)}
+                        className="flex-1 border border-gray-200 p-1.5 rounded-md text-sm font-inter text-gray-700 bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
           <div className="pt-4 flex justify-end gap-3">
