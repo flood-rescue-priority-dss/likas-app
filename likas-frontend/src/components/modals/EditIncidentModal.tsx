@@ -191,34 +191,48 @@ export default function EditIncidentModal({ open, onClose, incident, onSaved }: 
 
             {/* Current attachment preview */}
             {currentAttachment && !newFile && (
-              <div className="flex items-center gap-2 px-3 py-2.5 mb-2 bg-blue-50 border border-blue-100 rounded-xl">
-                <FileImage size={15} className="text-blue-500 flex-shrink-0" />
-                <a
-                  href={`${API_BASE}${currentAttachment}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 text-xs font-inter text-blue-600 hover:underline truncate"
-                  title={basename(currentAttachment)}
-                >
-                  {basename(currentAttachment)}
-                </a>
-                <span className="text-xs font-inter text-gray-400 flex-shrink-0">current</span>
+              <div className="mb-2 rounded-xl overflow-hidden border border-blue-100 bg-blue-50">
+                <img
+                  src={`${API_BASE}${currentAttachment}`}
+                  alt="Current attachment"
+                  className="w-full max-h-48 object-contain"
+                />
+                <div className="flex items-center gap-2 px-3 py-2 border-t border-blue-100">
+                  <FileImage size={14} className="text-blue-500 flex-shrink-0" />
+                  <a
+                    href={`${API_BASE}${currentAttachment}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-xs font-inter text-blue-600 hover:underline truncate"
+                    title={basename(currentAttachment)}
+                  >
+                    {basename(currentAttachment)}
+                  </a>
+                  <span className="text-xs font-inter text-gray-400 flex-shrink-0">current</span>
+                </div>
               </div>
             )}
 
             {/* New file selected preview */}
             {newFile && (
-              <div className="flex items-center gap-2 px-3 py-2.5 mb-2 bg-emerald-50 border border-emerald-100 rounded-xl">
-                <FileImage size={15} className="text-emerald-500 flex-shrink-0" />
-                <span className="flex-1 text-xs font-inter text-emerald-700 truncate">{newFile.name}</span>
-                <button
-                  type="button"
-                  onClick={clearNewFile}
-                  className="text-gray-400 hover:text-gray-600 flex-shrink-0 transition-colors"
-                  title="Remove selected file"
-                >
-                  <X size={14} />
-                </button>
+              <div className="mb-2 rounded-xl overflow-hidden border border-emerald-200 bg-emerald-50">
+                <img
+                  src={URL.createObjectURL(newFile)}
+                  alt="New attachment preview"
+                  className="w-full max-h-48 object-contain"
+                />
+                <div className="flex items-center gap-2 px-3 py-2 border-t border-emerald-200">
+                  <FileImage size={14} className="text-emerald-500 flex-shrink-0" />
+                  <span className="flex-1 text-xs font-inter text-emerald-700 truncate">{newFile.name}</span>
+                  <button
+                    type="button"
+                    onClick={clearNewFile}
+                    className="text-gray-400 hover:text-gray-600 flex-shrink-0 transition-colors"
+                    title="Remove selected file"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
             )}
 
