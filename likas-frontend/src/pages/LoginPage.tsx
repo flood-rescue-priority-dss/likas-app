@@ -186,7 +186,8 @@ export default function LoginPage() {
               <p className="text-xs font-inter text-gray-500 font-medium mb-2">Demo accounts:</p>
               <div className="space-y-1">
                 <p className="text-xs font-inter text-gray-400">
-                  <span className="text-gray-600 font-medium">Barangay:</span> manila.brgy-676@gov.ph / Password123!
+                  <span className="text-gray-600 font-medium">Barangay:</span> manila.brgy-676@gov.ph / Brgydrrmo!123
+
                 </p>
                 <p className="text-xs font-inter text-gray-400">
                   <span className="text-gray-600 font-medium">Admin:</span> manila.mdrrmo@gov.ph / Mdrrmo2026!
